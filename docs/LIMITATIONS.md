@@ -80,8 +80,11 @@ ASSUME dans `exchange_spec.py`), pas une valeur vérifiée.
 
 ### 2.1 Le test est calibré, donc pas infaillible
 
-Le PASS ≈ 80 % du contrôle (4 tests à 95 %) est le comportement **nominal**
-d'un test calibré : ~1 run isolé sur 5 échoue par design, même modèle vrai.
+Le PASS ≈ 80 % du contrôle initial (4 tests à 95 % = `0.95⁴`) a été invalidé
+par REV2 puis **re-calibré** (TD-004, plancher `V_floor`) : contrôle non
+contaminé → global 10/10 (10 000 h), 20/20 (5 000 h), buckets 29/30 (~nominal).
+Le comportement **nominal** d'un test calibré demeure : ~1 run isolé sur 20
+échoue par design au global, ~5 % des buckets — même modèle vrai.
 **Un FAIL ne doit jamais être interprété seul** ; c'est la distribution sur
 plusieurs runs (ou seeds) qui porte l'information.
 
@@ -170,7 +173,7 @@ quand une vérification aboutit, la correction est une ligne, pas une chasse.
 | **TD-001** — PnL multiplié par le levier (`unrealized()`) | **CORRIGÉ** (REV2) | `unrealized()` → `(entry−price)·qty` ; frais de sortie sur `qty·exit` (E11) ; funding sur notionnel d'ouverture figé (E7) ; tests réécrits depuis H1. Chiffres PnL régénérés : **−2 336 USD / 3 256 trades** (ancien +176 933 USD). |
 | **TD-002** — reproductibilité déclarée en avance sur le repo | **OUVERT** | `run_reproducible.sh`, `MANIFEST`, `flake.nix`, `validate_thesis.py` référencés dans la doc, absents du repo (REV02 #6). Cible : créer les artefacts avant publication externe ; en attendant, reproductibilité via `activate.sh` + `pytest` + scripts 03/04. |
 | **TD-003** — compteur `n_censored` (sémantique W3/V7) | **CORRIGÉ** (REV2) | Scindé en `n_open_at_end` (positions réellement ouvertes en fin de jeu, censure V7) et `n_hors_fenetres` (résolus hors fenêtres). Test écrit depuis le texte W3/V7. |
-| **TD-004** — calibration H4 invalidée par REV2 | **OUVERT** | La calibration « global 0/20 → ≈ 80 % » (HYPOTHESIS/METHODS/THESIS/codex06) a été mesurée sur le moteur AVANT la correction du double levier. Re-mesure (même config 30 000 h / capital 1 M) : global 5/20 (25 %), buckets 3/60 (5 %). Causes : contamination de portefeuille (R5 tronque l'échantillon quand la grille SHORT saigne sur le GBM à dérive positive ; le plafond de notionnel sature à prix ×400) et effondrement de `V_rob` (fenêtres à fréquences quasi identiques, 2–3 par bucket). Cible : re-calibrer sur une configuration non contaminée (ex. capital abondant + horizon court) ou corriger la pathologie `V_rob`. |
+| **TD-004** — calibration H4 invalidée par REV2 | **CORRIGÉ** (REV2) | La calibration « global 0/20 → ≈ 80 % » (moteur AVANT la correction du double levier) était invalide. Causes de la sur-rejection re-mesurée : contamination de portefeuille (R5 tronque l'échantillon quand la grille SHORT saigne sur le GBM à dérive positive) + effondrement de `V_rob` (fenêtres d'un bucket à fréquences quasi identiques, margin ~0.001 vs bruit ~0.024). **Correctif** : plancher binomial intra-fenêtre `V = max(V_rob, V_floor)` dans `cluster_robust_test`. **Re-calibré**, contrôle non contaminé (capital 1 M, skips=0) : 5 000 h → 20/20 PASS ; 10 000 h → global 10/10, buckets 29/30, 9/10 PASS ; 30 000 h → global 20/20 (FAIL = uniquement condition V6 « aucun skip »). Réel inchangé : FAIL bucket vol 1 (`p̂=0.0845` vs `P̂=0.1245`, ±0.0200) = déviation RÉELLE du modèle. Limite documentée : buckets à W=2 quasi non-testables (t(1)≈12.7·SE). |
 
 ---
 
@@ -180,3 +183,9 @@ quand une vérification aboutit, la correction est une ligne, pas une chasse.
   de `runner.py` (« skip uniquement si la qty résultante est nulle ») ; le
   comportement actuel est conforme à la doc. Aucune correction — noté pour ne
   pas relancer une fausse alerte.
+- **TD-004 : pathologie `V_rob` corrigée (plancher `V_floor`).** La dispersion
+  inter-fenêtres `(p̂_w − p̂)²` peut s'effondrer ~0 quand 2–3 fenêtres d'un
+  bucket ont des fréquences quasi identiques → margin ~0.001 et rejet de tout
+  écart. Correctif : `V = max(V_rob, V_floor)` avec le plancher binomial
+  intra-fenêtre. Conséquence documentée : buckets à W=2 quasi non-testables
+  (t(1) ≈ 12.7·SE) — le global porte la puissance.

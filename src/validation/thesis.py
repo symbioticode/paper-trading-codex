@@ -17,7 +17,7 @@ RATTACHEMENT : H4 (prédiction de la fréquence de liquidation), H2 (formule),
         prédiction H4 est donc le Monte Carlo DISCRET aux sémantiques du
         simulateur (`simulate_two_barrier_bars`, pont brownien intra-barre).
     V4  Buckets de RÉGIME par volatilité d'apprentissage (terciles).
-    V5  TEST — CORRECTION DE DÉPENDANCE (MESURÉE sur le contrôle GBM) : les
+    V5     TEST — CORRECTION DE DÉPENDANCE (MESURÉE sur le contrôle GBM) : les
         positions d'une même fenêtre partagent le MÊME chemin de prix : leurs
         issues ne sont PAS indépendantes. Le CI binomial naïf sur-réjette
         (~3x sur le contrôle). Le test H4 est un WALD CLUSTER-ROBUSTE,
@@ -26,10 +26,17 @@ RATTACHEMENT : H4 (prédiction de la fréquence de liquidation), H2 (formule),
         et on accepte si |p̂ − P̂| ≤ t(0,975, W−1)·√V_rob, où
         P̂ = Σ n_w·P̂_w/N. (Un sandwich sur les résidus p̂_w − P̂_w serait
         aveugle à un biais systématique — rejeté en J6.)
-        Calibration mesurée sur 20 seeds du contrôle : global 0/20, buckets
-        4/60, PASS global ≈ 80% = 0.95⁴ (4 tests indépendants à 95%).
-    V6  PASS si le GLOBAL est accepté ET chaque bucket non vide l'est (V5) ET
+        REV2 (TD-004) : avec W = 2–3 fenêtres par bucket, (p̂_w − p̂)² peut
+        s'effondrer ~0 quand les fréquences des fenêtres coïncident → margin ~0,
+        rejet de tout écart (pathologie mesurée, 5 seeds / 10 au contrôle
+        10 000 h). Correctif : plancher binomial intra-fenêtre
+        V_floor = Σ_w (n_w/N)²·p̂_w(1−p̂_w)/(n_w−1), variance = max(V_rob, V_floor).
+        Calibration REV2 mesurée sur le contrôle GBM 10 000 h / capital 1 M
+        (10 seeds) : global 10/10, buckets 29/30 (≈ 5 % nominal).
+    V6     PASS si le GLOBAL est accepté ET chaque bucket non vide l'est (V5) ET
         aucun skip cash/cap. Buckets non testables (n=0 ou W<2) : signalés.
+        REV2 : les buckets à W=2 (marge = t(1)·√V_floor ≈ 12.7·SE) sont quasi
+        non-testables — le global (W=8) porte la puissance.
     V7  Positions jamais résolues en fin de jeu (encore dans `engine.positions`
         au dernier close) : CENSURÉES au sens W3, comptées (`n_open_at_end`) et
         signalées — jamais ajoutées au dénominateur. À NE PAS confondre avec les
@@ -98,8 +105,12 @@ def cluster_robust_test(
     C'est ce qui rend le test PUISSANT contre un biais systématique : un écart
     constant du modèle gonfle |p̂ − P̂| sans gonfler V. (Un sandwich évalué sur
     les résidus p̂_w − P̂_w serait aveugle à un tel biais — rejeté en J6.)
+    REV2 (TD-004) : plancher binomial intra-fenêtre — variance utilisée =
+    max(V_rob, V_floor) avec V_floor = Σ_w (n_w/N)²·p̂_w(1−p̂_w)/(n_w−1), pour
+    empêcher l'effondrement de V_rob ~0 quand les p̂_w de fenêtres peu
+    nombreuses coïncident (pathologie mesurée au contrôle, cf. V5).
 
-    Retourne (p̂, P̂, V_rob, t_crit·√V_rob, accepté).
+    Retourne (p̂, P̂, V, t_crit·√V, accepté) avec V = variance testée (floored).
     Exige W ≥ 2 fenêtres ; sinon le test n'est pas possible (accepté=False).
     """
     k_w = list(k_w)
@@ -129,6 +140,24 @@ def cluster_robust_test(
     pred = sum(n_w[i] * pred_w[i] for i in range(W)) / N
     disp = sum((n_w[i] / N) ** 2 * (k_w[i] / n_w[i] - p) ** 2 for i in range(W))
     v_rob = disp * W / (W - 1.0)
+    # REV2 (TD-004) : PLANCHE R binomial intra-fenêtre. Avec peu de fenêtres par
+    # bucket (W = 2–3), la dispersion observée (p̂_w − p̂)² peut s'effondrer ~0
+    # quand les fréquences des fenêtres coïncident (ex. W=2 : p̂_w = 0.1528 vs
+    # 0.1526 → V_rob ≈ 0 → margin ≈ 0.001 contre un bruit binomial ~0.024 par
+    # fenêtre) : TOUT écart rejette. Le plancher est la variance d'échantillonnage
+    # intra-fenêtre (bien estimée, N−W ddl) :
+    #     V_floor = Σ_w (n_w/N)² · p̂_w(1−p̂_w)/(n_w−1)
+    # et on teste la variance = max(V_rob, V_floor). Calibration mesurée sur le
+    # contrôle GBM 10 000 h / capital 1 M (10 seeds) : global 10/10, buckets
+    # 29/30 (≈ 5 % = taux de rejet nominal). Conséquence documentée : les buckets
+    # à W=2 (marge = t(1)·√V_floor ≈ 12.7·SE) sont quasi non-testables — avec
+    # 2 fenêtres il n'y a aucune information inter-fenêtres exploitable.
+    v_floor = sum(
+        (n_w[i] / N) ** 2
+        * (k_w[i] / n_w[i]) * (1 - k_w[i] / n_w[i]) / (n_w[i] - 1)
+        for i in range(W)
+    )
+    v_rob = max(v_rob, v_floor)
     t_crit = st.t.ppf(1.0 - alpha / 2.0, W - 1)
     margin = t_crit * math.sqrt(v_rob)
     return p, pred, v_rob, margin, abs(p - pred) <= margin

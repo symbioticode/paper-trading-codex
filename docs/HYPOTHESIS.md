@@ -149,24 +149,30 @@ paramètres (pour `μ ≤ 0` puis `μ > 0` séparément) ; résolution numériqu
    systématique) :
    `V_rob = (W/(W−1))·Σ_w (n_w/N)²·(p̂_w − p̂)²`, acceptation si
    `|p̂ − P̂| ≤ t(0,975, W−1)·√V_rob`.
-   **Calibration initiale (J6, moteur AVANT la correction REV2 du PnL) :
-   global 0/20, buckets 4/60, PASS global ≈ 80 %** — la justification de la
-   norme `0.95⁴ ≈ 0.81`. **Calibration re-mesurée (REV2, moteur corrigé, même
-   config : 30 000 h, capital 1 M) : global 5/20 (25 %), buckets 3/60 (5 %).**
-   Les buckets restent à leur niveau nominal, mais le GLOBAL sur-rejette.
-   Deux causes, distinctes :
-   (1) **Contamination de portefeuille** : la grille SHORT perd de l'argent sur
-   le GBM à dérive positive ; à 30 000 h le prix croît ≈ 400×, le plafond de
-   notionnel et le cash finissent par se saturer (R5), R5 tronque l'échantillon
-   et biaise le global dans le même sens sur toutes les fenêtres.
-   (2) **Effondrement de la marge cluster-robuste** : quand les fenêtres d'un
-   bucket ont des fréquences quasi identiques, `V_rob ≈ 0` et toute dérive
-   (même minime) rejette — pathologie documentée pour les petits nombres de
-   fenêtres par bucket (2–3).
-   → **La norme « ≈ 80 % » est invalidée par la correction REV2** ; une
-   re-calibration sur une configuration de contrôle non contaminée est en cours
-   (TD-004, docs/LIMITATIONS.md §5). Un FAIL isolé doit donc être lu avec
-   prudence — pas comme un rejet calibré à 95 %.
+    **Calibration REV2 (test corrigé, TD-004 clôturé).** La calibration initiale
+    (J6, moteur AVANT la correction REV2 du PnL : global 0/20, buckets 4/60,
+    PASS ≈ 80 % = `0.95⁴`) était **invalide** : le PnL gonflé gardait la grille
+    solvable, l'échantillon du contrôle n'était jamais tronqué. Moteur corrigé,
+    la sur-rejection re-mesurée avait deux causes distinctes :
+    (1) **contamination de portefeuille** — la grille SHORT perd sur le GBM à
+    dérive positive ; à 30 000 h le prix croît ≈ 400×, R5 (cash/notionnel)
+    tronque l'échantillon ; (2) **effondrement de `V_rob`** — avec 2–3 fenêtres
+    par bucket aux fréquences quasi identiques, `V_rob ≈ 0` et toute dérive
+    rejette (margin 0.001 contre un bruit binomial ~0.024).
+    **Correctif (TD-004) : plancher binomial intra-fenêtre**
+    `V = max(V_rob, V_floor)` avec `V_floor = Σ_w (n_w/N)²·p̂_w(1−p̂_w)/(n_w−1)`
+    (composante d'échantillonnage intra-fenêtre, bien estimée, N−W ddl).
+    **Calibration re-mesurée, contrôle non contaminé (capital 1 M, skips=0) :**
+    - 5 000 h, 20 seeds : **20/20 PASS** (global 20/20 ; buckets non testables,
+      3 fenêtres → W<2 par bucket) ;
+    - 10 000 h, 10 seeds : **9/10 PASS** (global 10/10, buckets 29/30 ≈ nominal) ;
+    - 30 000 h, 20 seeds : global **20/20**, buckets 57/59, mais PASS 5/20 —
+      les 15 échecs sont UNIQUEMENT la condition V6 « aucun skip » (contamination
+      de portefeuille) ; le test de géométrie passe 20/20 malgré la troncature.
+    Un FAIL du global (ou d'un bucket sans skip) est donc re-calibré à ~95 % ;
+    un FAIL dû aux skips signale une contamination de portefeuille à traiter
+    à part. Conséquence documentée : les buckets à W=2 (marge = t(1)·√V_floor
+    ≈ 12.7·SE) sont quasi non-testables — le global (W=8+) porte la puissance.
 
 **Test.** `scripts/04_validate_thesis.py` :
 - construction des fenêtres indépendantes (W1–W3) ; estimation `(μ̂, σ̂)` sur

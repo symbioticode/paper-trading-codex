@@ -62,16 +62,20 @@ design**, même avec un modèle parfait. C'est le prix d'un test calibré, pas u
 défaut du modèle — et c'est pourquoi on ne lit jamais un FAIL isolé comme une
 preuve.
 
-> **REV2 — calibration invalidée.** Ces 0/20 global provenaient du moteur
-> AVANT la correction du double levier (le PnL gonflé gardait la grille
-> solvable, donc l'échantillon du contrôle jamais tronqué). Re-mesurée après
-> correction (même config 30 000 h / capital 1 M) : global 5/20, buckets 3/60.
-> Les buckets restent au nominal, mais le global sur-rejette — contamination de
-> portefeuille (R5 tronque l'échantillon quand la grille saigne sur le GBM à
-> dérive positive) et effondrement de `V_rob` quand les fenêtres d'un bucket
-> ont des fréquences quasi identiques. La leçon demeure (on ne croit un test
-> que calibré), mais la calibration de référence doit être re-faite sur une
-> configuration non contaminée (TD-004).
+> **REV2 — calibration invalidée puis corrigée (TD-004).** Ces 0/20 global
+> provenaient du moteur AVANT la correction du double levier (le PnL gonflé
+> gardait la grille solvable, l'échantillon du contrôle jamais tronqué).
+> Re-mesurée après correction (30 000 h / capital 1 M) : global 5/20, buckets
+> 3/60 — contamination de portefeuille (R5 tronque l'échantillon quand la
+> grille saigne sur le GBM à dérive positive) et effondrement de `V_rob` quand
+> les fenêtres d'un bucket ont des fréquences quasi identiques. **Correctif** :
+> plancher binomial intra-fenêtre `V = max(V_rob, V_floor)`. **Re-mesure finale,
+> contrôle non contaminé (capital 1 M, skips=0)** : 5 000 h → 20/20 PASS ;
+> 10 000 h → global 10/10, buckets 29/30, 9/10 PASS ; 30 000 h → global 20/20
+> (les FAIL à 30 000 h ne viennent que de la condition V6 « aucun skip »). Le
+> test est donc re-calibré à ~95 % par test. La leçon demeure : on ne croit un
+> test que calibré, et on re-mesure la calibration quand une correction touche
+> le moteur qui l'a produite.
 
 ## À retenir
 

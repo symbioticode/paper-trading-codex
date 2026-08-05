@@ -192,7 +192,9 @@ cluster-robuste, cluster = fenêtre**, avec la variance sandwich de la
 
 ```
 V_rob = (W/(W−1)) · Σ_w (n_w/N)² · (p̂_w − p̂)²
-acceptation si  |p̂ − P̂| ≤ t(0.975, W−1) · √V_rob
+V_floor = Σ_w (n_w/N)² · p̂_w(1−p̂_w)/(n_w−1)   # REV2/TD-004 : plancher binomial
+V = max(V_rob, V_floor)
+acceptation si  |p̂ − P̂| ≤ t(0.975, W−1) · √V
 avec  p̂ = Σ k_w/N,  P̂ = Σ n_w·P̂_w/N
 ```
 
@@ -205,17 +207,21 @@ indépendamment du modèle : un biais constant gonfle `|p̂ − P̂|` sans gonfl
 `V`, donc le test devient **puissant contre un biais systématique**. Ce choix
 est documenté comme un rejet délibéré d'une alternative (J6).
 
-**Calibration (la norme §2.3 de THESIS.md).** Mesurée initialement sur 20 seeds
-du contrôle GBM (J6, moteur AVANT la correction REV2 du PnL) : global 0/20,
-buckets 4/60, soit **PASS global ≈ 80 %** (`0.95⁴ ≈ 0.81`). **Re-mesurée après
-REV2 (moteur corrigé, même config : 30 000 h, capital 1 M) : global 5/20 (25 %),
-buckets 3/60 (5 %).** Les buckets restent au niveau nominal, mais le global
-sur-rejette : (1) contamination de portefeuille — la grille SHORT saigne sur le
-GBM à dérive positive, R5 (cash/notionnel) tronque l'échantillon ; (2)
-effondrement de `V_rob` quand les fenêtres d'un bucket ont des fréquences quasi
-identiques (2–3 fenêtres). La norme « ≈ 80 % » est donc **invalidée** par REV2 ;
-re-calibration sur une configuration non contaminée en cours (TD-004). Un run
-isolé ne doit plus être lu comme un rejet calibré à 95 %.
+**Calibration (la norme §2.3 de THESIS.md).** La calibration initiale (J6,
+moteur AVANT la correction REV2 du PnL) : global 0/20, buckets 4/60, PASS
+global ≈ 80 % (`0.95⁴ ≈ 0.81`) était **invalide** (le PnL gonflé gardait la
+grille solvable, l'échantillon du contrôle jamais tronqué). Re-mesurée moteur
+corrigé, la sur-rejection avait deux causes : contamination de portefeuille (R5
+tronque l'échantillon quand la grille SHORT saigne sur le GBM à dérive positive)
+et effondrement de `V_rob` (fenêtres d'un bucket à fréquences quasi identiques,
+2–3 fenêtres → margin ~0). **Correctif REV2 (TD-004) : plancher binomial
+intra-fenêtre `V = max(V_rob, V_floor)`** (voir formule ci-dessus). Calibration
+re-mesurée sur contrôle non contaminé (capital 1 M, skips=0) : **5 000 h / 20
+seeds → 20/20 PASS** ; **10 000 h / 10 seeds → global 10/10, buckets 29/30,
+9/10 PASS** ; **30 000 h / 20 seeds → global 20/20, buckets 57/59** mais PASS
+5/20, les échecs étant uniquement la condition V6 « aucun skip » (contamination
+de portefeuille, pas la machinerie). Le test est donc re-calibré à ~95 % par
+test ; les buckets à W=2 sont quasi non-testables (marge = t(1)·√V_floor).
 
 **Référence** : Cameron & Miller (2015) ; Liang & Zeger (1986).
 **Code** : `src/validation/thesis.py::cluster_robust_test`.
@@ -293,7 +299,7 @@ d'entrée − frais de sortie − funding payé. Désaccord à `1e-9` → bug.
 |---|---|---|
 | H2 continu (L=5, s=2%, μ=0.0005/h, σ=0.03/h) | `p̂` vs `P` dans 5σ | `03_ground_truth.py` |
 | Biais de granularité (contrôle, L=5, s=2%, σ=2.5%) | continue ≈ 0.108 vs observé ≈ 0.111 | mesuré via `04_validate_thesis.py` |
-| Calibration (20 seeds, contrôle) | **invalidée par REV2** : initiale 0/20 global, 4/60 buckets (moteur buggé) ; re-mesure global 5/20, buckets 3/60 (contamination portefeuille + `V_rob`≈0). Re-calibration en cours (TD-004) | `tests/test_thesis.py` |
+| Calibration (contrôle GBM, moteur corrigé + plancher `V_floor` REV2/TD-004) | 5 000 h/1 M : **20/20 PASS** ; 10 000 h/1 M : **global 10/10, buckets 29/30, 9/10 PASS** ; 30 000 h/1 M : **global 20/20, buckets 57/59**, PASS 5/20 (échecs = V6 « aucun skip » : contamination portefeuille). Initiale J6 (0/20 global, 4/60 buckets, moteur buggé) invalidée | `tests/test_thesis.py`, `scripts/04_validate_thesis.py` |
 | H4 contrôle GBM (seed 60) | global `p̂=0.1245` vs `P̂=0.1206` (±0.014), **PASS** | `04_validate_thesis.py` |
-| H4 données réelles (51 594 barres) | **FAIL** : global `p̂=0.1100` vs `P̂=0.1236` (±0.0149) OK ; bucket vol 1 `p̂=0.0845` vs `P̂=0.1245` (±0.0196) **HORS** ; buckets 0/2 OK. Reproductible (venv sol-grid-lab, 2 runs identiques) | `04_validate_thesis.py --data real` |
+| H4 données réelles (51 594 barres) | **FAIL** : global `p̂=0.1100` vs `P̂=0.1236` (±0.0149) OK ; bucket vol 1 `p̂=0.0845` vs `P̂=0.1245` (±0.0200) **HORS** ; buckets 0/2 OK. Déviation RÉELLE du modèle (~32 % de sous-prédiction en vol moyenne), pas un artefact du test. Reproductible (venv sol-grid-lab, 2 runs identiques) | `04_validate_thesis.py --data real` |
 | PnL constaté (réel, hors thèse) | **−2 336 USD** / 3 256 trades (capital 10 000, equity finale 7 663 USD), 3 positions ouvertes | `04_validate_thesis.py --data real` |

@@ -100,10 +100,11 @@ construction, à la manière d'un retour d'expérience de backtest.
 - **Calibration du test sur un contrôle où le modèle est vrai par
   construction.** Un test statistique qui se trompe ne peut pas être détecté
   par lui-même : on mesure donc son taux de faux rejets sur le contrôle GBM
-  avant de l'appliquer aux données réelles (METHODS.md §5). Mesurée en J6 à
-  ≈ 80 % (`0.95⁴ ≈ 0.81`) ; **cette calibration est invalidée par la
-  correction REV2 du PnL** (re-mesure : global 5/20, buckets 3/60 — voir
-  HYPOTHESIS.md §H4, TD-004).
+  avant de l'appliquer aux données réelles (METHODS.md §5). La calibration
+  initiale (J6, ≈ 80 % = `0.95⁴`) a été invalidée par REV2 puis **re-faite
+  moteur corrigé avec le plancher `V_floor` (TD-004)** : contrôle non
+  contaminé → global 10/10 (10 000 h), 20/20 (5 000 h), buckets 29/30
+  (≈ nominal) — voir HYPOTHESIS.md §H4.
 - **Une hypothèse réfutée est un résultat publié**, pas un bug (H4).
 - **Provenance de toute donnée** : sha256, source, intervalle, paramètres
   (`data/data_loader.py`), données synthétiques étiquetées `synthetic` et
@@ -184,13 +185,16 @@ prédiction de probabilité à une fréquence observée quand les observations n
 sont pas indépendantes ? Au lieu de choisir un test « classique » (Wilson) et
 de le croire, on a **mesuré son défaut sur le contrôle** (sur-rejet ~11/20 au
 lieu de ~5 %), puis **construit** le test cluster-robuste, puis **re-mesuré sa
-calibration** (J6 : global 0/20, buckets 4/60 ⇒ ≈ 0.95⁴). **REV2 : la
-correction du PnL du moteur invalide cette calibration** — re-mesurée, elle
-donne global 5/20 (25 %), buckets 3/60 (5 %), pour les raisons documentées dans
-HYPOTHESIS.md §H4 (contamination de portefeuille, `V_rob`≈0). La norme reste :
-on ne croit un test que s'il se comporte à son niveau nominal quand le modèle
-est vrai — mais la calibration de référence doit être re-faite sur une
-configuration de contrôle non contaminée (TD-004).
+calibration** (J6 : global 0/20, buckets 4/60 ⇒ ≈ 0.95⁴). **REV2 a invalidé
+cette calibration** (PnL du moteur corrigé → re-mesure : global 5/20, buckets
+3/60, causes documentées dans HYPOTHESIS.md §H4 : contamination de portefeuille
+et effondrement de `V_rob`) puis **le test a été corrigé** (plancher binomial
+intra-fenêtre `V = max(V_rob, V_floor)`, TD-004). Calibration re-mesurée,
+contrôle non contaminé : **5 000 h → 20/20 PASS ; 10 000 h → global 10/10,
+buckets 29/30, 9/10 PASS ; 30 000 h → global 20/20** (les FAIL à 30 000 h ne
+viennent que de la condition V6 « aucun skip », contamination de portefeuille).
+La norme est donc : on ne croit un test que s'il se comporte à son niveau
+nominal quand le modèle est vrai — et désormais il le fait (~95 % par test).
 
 ### 4.3 Les biais de mesure sont quantifiés et corrigés, pas supposés
 

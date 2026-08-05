@@ -55,7 +55,7 @@ from src.validation.windows import build_windows, tag_opening_indices
 REAL_PATH = Path("data/raw/SOLUSDT_1h.csv")
 
 
-def pnl_by_window(engine, bars, windows) -> None:
+def pnl_by_window(engine, bars, windows, capital: float) -> None:
     """Constat PnL réalisé par fenêtre d'ouverture (HORS thèse : mesure)."""
     ts_to_idx = {bar.ts: i for i, bar in enumerate(bars)}
     opening = [ts_to_idx[t.opened_at] for t in engine.trades]
@@ -70,7 +70,7 @@ def pnl_by_window(engine, bars, windows) -> None:
 
     print(f"    trades={len(engine.trades)}  PnL total réalisé={total:,.2f} USD")
     print(f"    equity_fin={engine.equity_usd():,.2f} USD "
-          f"(capital initial 10 000)")
+          f"(capital initial {capital:,.0f})")
     print(f"    positions ouvertes en fin de jeu : {len(engine.positions)}")
     for w in sorted(per):
         tag = "hors fenêtre" if w == -1 else f"fenêtre {w}"
@@ -140,7 +140,7 @@ def main() -> int:
 
     print("\n=== Constat PnL (hors thèse, mesure uniquement) ===")
     res = run_backtest(bars, ShortGridStrategy(grid_cfg), cfg=run_cfg)
-    pnl_by_window(res.engine, bars, windows)
+    pnl_by_window(res.engine, bars, windows, capital)
 
     return 0 if report.passes else 1
 

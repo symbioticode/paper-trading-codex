@@ -47,6 +47,36 @@ def test_cluster_robust_test_ecart_net_refuse():
     assert not ok
 
 
+def test_cluster_robust_plancher_binomial_pas_d_effondrement():
+    # TD-004 : pathologie mesurée au contrôle 10 000 h (seed 0, bucket vol 1).
+    # Deux fenêtres aux fréquences quasi identiques (p̂_w = 0.1528 vs 0.1526) →
+    # dispersion inter-fenêtres ~0. Sans plancher, V_rob ≈ 0 et margin ≈ 0.001 :
+    # tout écart (ici 0.032, dans le bruit binomial ~0.024/fenêtre) rejette.
+    k_w = [33, 38]
+    n_w = [216, 249]
+    pred_w = [0.1207, 0.1207]
+    p, pred, v, margin, ok = cluster_robust_test(k_w, n_w, pred_w)
+    # Le plancher binomial doit empêcher une marge ~0 :
+    assert margin > 0.05
+    # Ici la déviation |p̂−P̂| = 0.032 reste dans la marge plancher (~0.21 à W=2)
+    # et l'écart au modèle n'est PAS attribué à tort :
+    assert ok
+
+
+def test_cluster_robust_plancher_ne_desarme_pas_la_puissance():
+    # Un écart systématique NET sur plusieurs fenêtres stables doit rester
+    # rejeté même avec le plancher (p̂~0.5 vs P̂~0.1).
+    _, _, _, _, ok = cluster_robust_test([25, 26, 24, 27], [50, 50, 50, 50], [0.1] * 4)
+    assert not ok
+    # W=3 garde la puissance (marge ~4.3·SE au lieu du facteur t(1) à W=2) :
+    _, _, _, _, ok3 = cluster_robust_test([25, 26, 24], [50, 50, 50], [0.1] * 3)
+    assert not ok3
+    # W=2 : limitation documentée — le plancher t(1)≈12.7·SE rend le bucket
+    # quasi aveugle (marge ~0.64 ici) ; seul un écart MASSIF reste détecté :
+    _, _, _, _, ok2 = cluster_robust_test([37, 37], [50, 50], [0.1, 0.1])
+    assert not ok2
+
+
 def test_predict_discrete_domaine():
     assert 0.0 < predict_discrete(0.0, 0.03, 5.0, 0.02) < 1.0
     p_fin = predict_discrete(0.0005, 0.03, 5.0, 0.02, steps_per_hour=300, n_paths=5000)

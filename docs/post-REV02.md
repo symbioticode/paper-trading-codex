@@ -33,7 +33,7 @@ La stratégie SHORT grille perd sur le jeu réel : +176 933 → −2 336 USD.
 - **TD-001** (PnL) : **CORRIGÉ**.
 - **TD-002** (reproductibilité : `run_reproducible.sh` / `MANIFEST` / `flake.nix` absents du repo) : **OUVERT** — condition : avant publication externe.
 - **TD-003** (censure) : **CORRIGÉ**.
-- **TD-004** (re-calibration du test H4) : **OUVERT** — voir ci-dessous.
+- **TD-004** (re-calibration du test H4) : **CORRIGÉ** — voir ci-dessous.
 
 ## Conséquence majeure : la calibration H4 publiée était invalide
 
@@ -57,20 +57,38 @@ Deux causes de la sur-rejection globale identifiées :
    bucket vol 1 : `p̂=0.1527` vs `P̂=0.1207`, margin = 0.0011 contre un bruit
    binomial ~0.024 par fenêtre).
 
-## TD-004 — état de l'investigation (OUVERT, en cours)
+## TD-004 — corrigé (plancher `V_floor`) et re-calibration publiée
 
 Diagnostic établi : au contrôle 10 000 h / capital 1 M, le **global passe 10/10**
 (calibré) et **tous** les échecs (5 seeds / 10) sont des **buckets** dont la
 dispersion inter-fenêtres s'effondre quand les `p̂_w` coïncident.
 
-Correctif en cours : **plancher binomial intra-fenêtre**
+**Correctif implémenté** dans `cluster_robust_test` (thesis.py) : **plancher
+binomial intra-fenêtre**
 `V_floor = Σ_w (n_w/N)²·p̂_w(1−p̂_w)/(n_w−1)`, variance testée =
-`max(V_rob, V_floor)`. Mesuré : 30 buckets → 29/30 rejetés comme avant, le
-pathologique passe (4/5 flips), 1 rejet restant ≈ taux nominal 5 %.
+`max(V_rob, V_floor)`. Tests de non-régression ajoutés
+(`test_cluster_robust_plancher_binomial_pas_d_effondrement`,
+`test_cluster_robust_plancher_ne_desarme_pas_la_puissance`).
 
-Point de vigilance non tranché : à W=2 le facteur t(1)≈12.7 rend le bucket quasi
-aveugle (marge ~0.21 pour un écart réel ~0.03) — comparaison en cours entre
-`t(W−1)` sur le plancher (conservateur) et un `z` sur la composante
-intra-fenêtre bien estimée (plus puissant). Validation finale : re-mesure de la
-calibration sur le contrôle GBM non contaminé, puis publication (docs codex/06,
-HYPOTHESIS §H4, METHODS, THESIS) et clôture de TD-004.
+**Calibration re-mesurée (contrôle non contaminé, capital 1 M, skips=0) :**
+
+| Config | Résultat |
+|---|---|
+| 5 000 h, 20 seeds | **20/20 PASS** (global 20/20 ; buckets non testables, 3 fenêtres) |
+| 10 000 h, 10 seeds | **9/10 PASS** — global **10/10**, buckets **29/30** (≈ nominal) |
+| 30 000 h, 20 seeds | global **20/20**, buckets 57/59 ; PASS 5/20 — les 15 échecs sont UNIQUEMENT la condition V6 « aucun skip » (contamination portefeuille) |
+
+Avant le correctif, le contrôle 10 000 h échouait 5/10 (pathologie `V_rob`) ;
+après, 1/10 (un rejet ≈ 5 % nominal). Le **réel est inchangé : FAIL bucket
+vol 1** (`p̂=0.0845` vs `P̂=0.1245`, ±0.0200) — déviation **réelle** du modèle
+(~32 % de sous-prédiction en vol moyenne), pas un artefact du test : le
+correctif ne masque pas une erreur de modèle.
+
+**Point de vigilance documenté** : à W=2 le facteur t(1)≈12.7 rend le bucket
+quasi non-testable (marge ~12.7·SE) ; c'est le prix honnête de l'absence
+d'information inter-fenêtres — le global (W=8+) porte la puissance. C'est le
+compromis retenu face au `z` (plancher binomial pur), qui aurait re-introduit
+la sur-rejection mesurée du Wilson (corrélation intra-fenêtre non corrigée).
+
+**Clôture** : TD-004 marqué CORRIGÉ dans LIMITATIONS.md §5 ; calibration
+republiée dans HYPOTHESIS §H4, METHODS §5.2/§7, THESIS, codex/06.
