@@ -143,15 +143,6 @@ def summarize(engine, capital: float, label: str) -> None:
     print()
 
 
-def equilibrium_liq_rate(L: float, s: float) -> float:
-    """Taux de liquidation d'équilibre : P(liq)* tel que l'espérance de PnL
-    par trade soit nulle (sans frais ni funding, TP gagne s·notionnel, liq
-    perd marge = notionnel/L) :
-        (1−p)·s − p/L = 0  ⇒  p* = s·L / (1 + s·L).
-    """
-    return s * L / (1.0 + s * L)
-
-
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--data", choices=["gbm", "real"], default="real")
@@ -185,12 +176,24 @@ def main() -> int:
               f"CONSTAT PUBLIÉ — grille SHORT L={args.L:g}, s={100*args.s:.0f} %, "
               f"frais 1×, slip 0")
 
-    # ── 2. Taux de liquidation d'équilibre (référence) ─────────────────────
-    p_star = equilibrium_liq_rate(args.L, args.s)
-    print("=== Taux de liquidation d'équilibre (référence) ===")
-    print(f"  p* = s·L/(1+s·L) = {p_star:.4f} (L={args.L:g}, s={100*args.s:.0f} %)")
-    print(f"  → en dessous de p*, le TP compense la liq ; au-dessus, chaque "
-          f"trade rapporte en attente < 0.\n")
+    # ── 2. Taux de liquidation d'équilibre (trois conventions, REV03-1 §3) ─
+    def _thr(label: str, g_tp: float, l_liq: float) -> None:
+        q = g_tp / (g_tp + abs(l_liq))
+        print(f"  {label:<34}{q:.4f}")
+
+    N = 1.0
+    g_coarse = args.s * N
+    l_coarse = N / args.L
+    g_engine = args.s * N - N * 0.0002 - (1 - args.s) * N * 0.0004
+    l_engine = N / args.L + N * 0.0002
+    d_h1 = (1 / args.L - 0.005) / (1 + 0.005)
+    print("=== Taux de liquidation d'équilibre — trois conventions (REV03-1 §3) ===")
+    print("  formules générales : q* = G_TP / (G_TP + |L_liq|) ; "
+          "aucun seuil publié sans convention (docs/ECONOMICS.md §2)")
+    _thr("grossier (aucun coût) :", g_coarse, l_coarse)
+    _thr("moteur (frais par défaut, E5/E11) :", g_engine, l_engine)
+    _thr(f"géométrie H1 (d={100*d_h1:.2f} %) :", args.s * N, d_h1 * N)
+    print()
 
     # ── 3. Benchmarks passifs (même historique, même capital) ──────────────
     bh = args.capital * (closes[-1] / closes[0] - 1.0)

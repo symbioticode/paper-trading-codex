@@ -58,29 +58,46 @@ grille SHORT levée.
 
 ---
 
-## 2. Taux de liquidation d'équilibre (référence documentée)
+## 2. Taux de liquidation d'équilibre — trois conventions, pas un seuil unique
 
-Espérance de PnL par trade, sans frais ni funding, avec `p = P(liq)` :
-
-```
-E = (1−p)·s·N − p·(N/L)     N = notionnel
-```
-
-`E = 0` donne le **taux de liquidation d'équilibre** :
+**Il n'existe pas un « seuil ~9,1 % », mais trois** (REV03-1 §3, re-dérivés
+ici même — pas de citation d'un draft comme source finale). Le point commun
+est la **formule générale** : pour une espérance de PnL par trade nulle,
 
 ```
-p* = s·L / (1 + s·L) = 0.02·5 / (1 + 0.02·5) = 0.10 / 1.10 ≈ 0.0909   (9,1 %)
+q* = G_TP / (G_TP + |L_liq|)
 ```
 
-- Si `p < p*` : le TP compense les liquidations → espérance positive.
-- Si `p > p*` : chaque trade rapporte en attente **moins que zéro**.
-- Les frais ne font que **baisser** `p*` (le TP net doit couvrir deux frais) :
-  l'équilibre réel est sous 9,1 %.
+où `G_TP` = gain net attendu d'un take-profit et `|L_liq|` = perte nette
+attendue d'une liquidation, **frais, funding, slippage et convention de
+liquidation inclus explicitement**. `q*` est le taux de liquidation tel que
+`p < q*` ⇒ espérance positive, `p > q*` ⇒ espérance négative.
 
-**Confrontation mesurée** : taux de liq réalisé **0.1072 > p\*** → l'espérance
-négative observée (−0,72 USD/trade) est **cohérente** avec le modèle de
-comptage. Ce n'est pas une validation (H4 reste le test falsifiable) : c'est la
-même mécanique comptable, vue sous l'angle « combien ».
+| Seuil | Valeur | Convention |
+|---|---|---|
+| **Grossier** | **9,09 %** | TP = `s·N` (2 % du notionnel), perte liq = marge pleine `N/L` (20 %), **aucun coût** (frais/funding/slippage nuls). `q* = s/(s + 1/L) = 0.02/(0.22)`. |
+| **Moteur — frais par défaut** | **8,84 %** | Conforme E5/E11 : `G_TP = s·N − N·0.0002 − (1−s)·N·0.0004 = N·0.019408` (maker sur entrée, taker sur notionnel de sortie) ; `|L_liq| = N/L + N·0.0002 = N·0.2002` (aucun frais de sortie à la liq, E5) ; funding et slippage nuls. |
+| **Géométrie H1** | **9,34 %** | Perte liq = **distance de liquidation exacte** `d = (1/L − MMR)/(1+MMR) = 0.19403` (19,403 %), **pas** la comptabilité E5 (perte de marge 20 %). Frais nuls. `q* = s/(s + d)`. |
+
+Lecture cohérente des trois : plus la perte de liquidation est élevée, plus le
+seuil d'équilibre baisse. Le moteur perd plus que la géométrie H1 (marge
+complète 20 % > distance 19,40 %) **et** paie des frais ⇒ seuil le plus bas.
+**Publier « 9,1 % » sans étiquette ferait relire un futur PnL contre le mauvais
+seuil** — ici chaque valeur porte sa convention.
+
+**Funding (REV03-1 §3, point 3) :** le funding rend `q*` **dépendant de la
+durée de détention** (le funding s'accumule par heure détenue, et pour un SHORT
+`rate > 0` est créditeur). Le seuil publié ne l'intègre pas.
+> **ASSUME : durée de détention non intégrée au seuil publié** — cible de
+> vérification : intégrer la distribution des durées de détention mesurées
+> (positions réelles) dans `G_TP` et `|L_liq|` avant toute conclusion
+> dépendante du funding.
+
+**Confrontation mesurée** : taux de liq réalisé **0.1072** — au-dessus des
+**trois** seuils (8,84 % ; 9,09 % ; 9,34 %) → l'espérance négative observée
+(−0,72 USD/trade) est cohérente **quelle que soit la convention retenue**. Ce
+n'est pas une validation (H4 reste le test falsifiable) : c'est la même
+mécanique comptable, vue sous l'angle « combien ».
 
 ---
 
