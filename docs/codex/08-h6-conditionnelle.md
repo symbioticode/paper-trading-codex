@@ -39,12 +39,38 @@ Le pré-enregistrement (dans HYPOTHESIS.md §H6, en commit **avant** tout calcul
 fige d'avance :
 1. **Variables candidates** — une liste fermée, décrétée avant de regarder les
    données (taille du spike, position du close, mèches, momentum pré-trigger,
-   distance à l'ancre, μ/σ locaux, fréquence des triggers, barre suivante).
+   distance à l'ancre, μ/σ locaux, fréquence passée des triggers).
 2. **Découpage train/test** — fenêtres non chevauchantes, paramètres estimés sur
    train uniquement, prédiction sur test hors-échantillon (même esprit que H4).
 3. **Métrique** — l'amélioration de la calibration du Wald cluster-robuste sur
    le MÊME bucket vol 1 qui a échoué ; le global reste inchangé.
 4. **Budget de variantes** — 3 maximum ; au-delà, correction de Bonferroni.
+
+## Les deux invariants de non-fuite (REV03-1 §2)
+
+Le découpage train/test ne suffit pas. Il faut **deux** invariants distincts :
+
+- **Invariant A — Apprentissage** : toute estimation de paramètre (`μ̂`, `σ̂`,
+  fréquences) vient exclusivement des barres de train. C'est déjà en place pour
+  H4.
+- **Invariant B — Prédiction par position** : le timestamp maximal de CHAQUE
+  covariable utilisée pour prédire une position est ≤ `opened_at` de cette
+  position — pas seulement ≤ `test_start` de la fenêtre.
+
+Pourquoi deux ? Une variable peut être légale au sens du découpage train/test
+(invariant A) tout en fuyant au niveau de la position individuelle (invariant B
+violé). Exemple réel du projet : « comportement de la barre suivant le
+trigger ». G3 entre au close de la barre t ; la barre t+1 est **postérieure** à
+l'ouverture et peut contenir la résolution complète du trade (TP ou
+liquidation) dès la première heure. L'utiliser comme prédicteur, c'est
+**fuir la cible elle-même dans les features** — halluciner un pouvoir prédictif
+là où il y a une fuite. Le pré-enregistrement initial de H6 la contenait ;
+REV03-1 §2 l'a **bloquée**, retirée, et l'invariant B est désormais dans le
+contrat. Si l'effet de la barre suivante reste scientifiquement intéressant, il
+est formulé comme **hypothèse distincte** (landmark model : *« conditionnellement
+à la survie de la position après sa première barre, quelle est P(liq) à partir
+de t+1 ? »*, avec exclusion des positions résolues dans la première barre) —
+jamais inséré dans H6.
 
 Tout écart à ce contrat (nouvelle variable, nouvelle métrique, 4ᵉ variante)
 n'est pas un « ajustement », c'est une **nouvelle hypothèse** qui mérite sa
@@ -65,5 +91,6 @@ autre plus informée**, et on le dit.
 > Quand un FAIL est robuste, ne le réparez pas : **lisez-le**. Ce qu'il suggère
 > devient une hypothèse nouvelle, et cette hypothèse est **pré-enregistrée avant
 > tout calcul** — variables, découpage, métrique et budget de variantes fixés à
-> l'avance. La réussite de cette étape se mesure à la qualité du contrat, pas à
-> un README plus flatteur.
+> l'avance, et chaque covariable bornée par les **deux invariants** (A : train
+> uniquement ; B : ≤ `opened_at` de la position). La réussite de cette étape se
+> mesure à la qualité du contrat, pas à un README plus flatteur.

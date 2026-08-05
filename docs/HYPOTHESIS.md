@@ -231,25 +231,58 @@ FAIL du bucket médian. »* En chiffres (réel vs pont brownien) : `P(min low 6h
 barre suivante `−1.15 % à −1.55 %` (60–77 % de la distance TP) vs `~−0.7 %`
 (modèle), `P(liq)` à vie sur les mêmes entrées `0.0875` vs `0.2250` (modèle).
 
-**Statut : PRÉ-ENREGISTRÉE (REV03 §3).** Aucun calcul H6 avant ce commit —
-règle producteur : jamais de sélection de variable après avoir vu le résultat.
-Le pré-enregistrement est le contrat de l'hypothèse ; l'implémentation se fera
-sur `feature/h6-conditional-liq`, H4/H2 restant la baseline publiée telle
-quelle.
+**Statut : PRÉ-ENREGISTRÉE — RÉVISÉE (REV03-1 §2).** REV03-1 §2 a **bloqué**
+le pré-enregistrement initial : la variable « comportement de la barre suivant
+le trigger » (t+1) fuyait la cible (cette barre peut contenir la résolution
+complète du trade). Cette révision la retire et ajoute l'**invariant B**
+(REV03-1 §2, ci-dessous). Le pré-enregistrement n'est **autorisé qu'après ce
+commit** — règle producteur : jamais de sélection de variable après avoir vu le
+résultat. L'implémentation se fera sur `feature/h6-conditional-liq` ; H4/H2
+restent la baseline publiée telle quelle.
 
 **Pré-enregistrement (fixé à l'avance, non modifiable sans nouvelle REV) :**
-- *Variables candidates autorisées* (limitées à cette liste) : taille du spike
-  déclencheur (excès du high au-dessus de l'ancre), position du close dans la
-  chandelle, taille des mèches, momentum des heures précédentes, distance à
-  l'ancre, `μ`/`σ` locaux, fréquence récente des triggers, comportement de la
-  barre suivant le trigger.
+
+**Invariants de non-fuite (REV03-1 §2, BLOQUANTS) :**
+- *Invariant A — Apprentissage.* Toute estimation de paramètre (`μ̂`, `σ̂`,
+  fréquences) vient exclusivement des barres de **train**.
+- *Invariant B — Prédiction par position (nouveau, H6).* Le timestamp maximal
+  de **chaque covariable** utilisée pour prédire une position est ≤ `opened_at`
+  de cette position — pas seulement ≤ `test_start` de la fenêtre. Une variable
+  peut être légale au sens du découpage train/test (H4) tout en fuyant au
+  niveau de la position individuelle (H6) : ce sont **deux granularités de
+  fuite distinctes**, et H6 introduit la seconde pour la première fois dans le
+  projet.
+
+- *Variables candidates autorisées* (limitées à cette liste, **révisées
+  contre l'invariant B, variable par variable**) :
+  - taille du spike déclencheur (excès du high au-dessus de l'ancre) — B ✓ :
+    high de la barre déclenchante connu au moment de l'exécution au close ;
+  - position du close dans la chandelle — B ✓ : close connu au moment de
+    l'exécution au close ;
+  - taille des mèches — B ✓ : high/low de la barre déclenchante connus au close ;
+  - momentum des heures **précédentes** (strictement antérieures au trigger) — B ✓ ;
+  - distance à l'ancre au moment de l'entrée — B ✓ : ancre connue avant le
+    close d'exécution ;
+  - `μ`/`σ` locaux sur fenêtre strictement antérieure — B ✓ (via invariant A) ;
+  - fréquence récente des triggers avant la barre déclenchante — B ✓ ;
+  - **EXCLUE** : « comportement de la barre suivant le trigger » (t+1) — fuit la
+    cible, retirée (REV03-1 §2). Reportée en hypothèse distincte ci-dessous.
 - *Découpage temporel* : identique en esprit à H4 — fenêtres non chevauchantes,
-  paramètres estimés sur train uniquement, prédiction sur test hors-échantillon.
+  paramètres estimés sur train uniquement (invariant A), prédiction sur test
+  hors-échantillon, et chaque covariable ≤ `opened_at` de la position
+  (invariant B).
 - *Métrique de comparaison* : amélioration de la calibration du Wald
   cluster-robuste sur le **même bucket vol 1** qui a échoué en H4 (global inchangé).
 - *Nombre maximal de variantes* : **3** ; au-delà, correction de Bonferroni
   (α/k) sur la métrique. Toute variante testée doit être listée ici avant son
   calcul.
+
+**Hypothèse distincte (landmark model, HORS H6 — REV03-1 §2, point 4).**
+*« Conditionnellement à la survie de la position après sa première barre,
+quelle est `P(liq)` à partir de t+1 ? »* Avec exclusion explicite des positions
+résolues dans cette première barre. Si poursuivie, cette question est
+**pré-enregistrée séparément de H6** — elle ne rentre pas de force dans
+l'énoncé H6 tel que formulé.
 
 **Test.** `tests/test_conditional.py` (écrit depuis ce pré-enregistrement, pas
 depuis l'implémentation) + `src/risk/conditional.py` (extension, ne modifie ni
