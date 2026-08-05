@@ -181,7 +181,7 @@ sans la preuve correspondante ; sinon il reste « toujours ASSUME ».
 
 ---
 
-## 5. Dettes tracées (REV2)
+## 5. Dettes tracées (REV2 / REV03 / REV03-1)
 
 | Dette | Statut | Détail |
 |---|---|---|
@@ -189,6 +189,7 @@ sans la preuve correspondante ; sinon il reste « toujours ASSUME ».
 | **TD-002** — reproductibilité déclarée en avance sur le repo | **PLANIFIÉ** (cible : 2026-09-30) | `run_reproducible.sh`, `MANIFEST`, `flake.nix`, `validate_thesis.py` référencés dans la doc, absents du repo (REV02 #6). REV03 §1 : replanifié avec date — TODO explicite, à livrer AVANT toute publication externe ; en attendant, reproductibilité via `activate.sh` + `pytest` + scripts 03/04 (`docs/STATUS.md` est la source canonique de comptage). |
 | **TD-003** — compteur `n_censored` (sémantique W3/V7) | **CORRIGÉ** (REV2) | Scindé en `n_open_at_end` (positions réellement ouvertes en fin de jeu, censure V7) et `n_hors_fenetres` (résolus hors fenêtres). Test écrit depuis le texte W3/V7. |
 | **TD-004** — calibration H4 invalidée par REV2 | **CORRIGÉ** (REV2) | La calibration « global 0/20 → ≈ 80 % » (moteur AVANT la correction du double levier) était invalide. Causes de la sur-rejection re-mesurée : contamination de portefeuille (R5 tronque l'échantillon quand la grille SHORT saigne sur le GBM à dérive positive) + effondrement de `V_rob` (fenêtres d'un bucket à fréquences quasi identiques, margin ~0.001 vs bruit ~0.024). **Correctif** : plancher binomial intra-fenêtre `V = max(V_rob, V_floor)` dans `cluster_robust_test`. **Re-calibré**, contrôle non contaminé (capital 1 M, skips=0) : 5 000 h → 20/20 PASS ; 10 000 h → global 10/10, buckets 29/30, 9/10 PASS ; 30 000 h → global 20/20 (FAIL = uniquement condition V6 « aucun skip »). Réel inchangé : FAIL bucket vol 1 (`p̂=0.0845` vs `P̂=0.1245`, ±0.0200) = déviation RÉELLE du modèle. Limite documentée : buckets à W=2 quasi non-testables (t(1)≈12.7·SE). |
+| **TD-005** — garde-fou `update_status.py --check` manuel (pas de CI) | **PLANIFIÉ** (cible : au plus tard 2026-10-31, ou avant tout prochain audit externe) | REV03-1 §1 : `scripts/update_status.py` régénère la section Tests de `docs/STATUS.md` depuis la sortie réelle de pytest (`--collect-only -q`, exit code de `pytest -q`) ; `--check` échoue si le fichier commité dérive (vérifié : 103 tests, drift 104 → FAIL). Aucune CI dans le dépôt → le garde-fou est manuel ; le brancher sur une CI si elle apparaît. |
 
 ---
 
