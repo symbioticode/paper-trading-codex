@@ -12,6 +12,7 @@
 | [`THESIS.md`](THESIS.md) | **Exhaustif.** Ce que la thèse affirme exactement, sur quoi elle se base (références académiques, retour d'expérience, normes quantitatives), comment elle est traduite en code avec les attentes de chaque module, et pourquoi l'approche est robuste. |
 | [`METHODS.md`](METHODS.md) | **Méthodes.** Dérivations complètes (formule de liquidation H1, formule à deux barrières H2, plafond H3), les deux corrections de mesure de H4 (prédiction discrète, Wald cluster-robuste) et la calibration des tests. |
 | [`LIMITATIONS.md`](LIMITATIONS.md) | **Limites déclarées.** Assomptions, inconnues, cibles de vérification et ce que la thèse ne prétend PAS. |
+| [`codex/`](codex/README.md) | **Pédagogique (Jour 7).** Sept leçons autonomes (01..07), une par journée du projet : la méthode falsifiable, les dérivations, et les pièges réellement rencontrés. Le PnL n'y figure que comme constat. |
 | `producteur-papercodex.md` | Symlink vers le skill Producteur (règles de production : rattachement à une hypothèse, conventions documentées, aucune valeur muette). |
 
 ## Comment lire ce projet
@@ -20,6 +21,7 @@
 2. `THESIS.md` — le « pourquoi » : fondements et traduction en code.
 3. `METHODS.md` — les mathématiques, au niveau nécessaire pour les refaire.
 4. `LIMITATIONS.md` — ce qu'il ne faut pas croire au-delà de la preuve.
+5. `codex/` — pour apprendre, une leçon par journée du projet (Jour 7).
 
 ## Comment réfuter ce projet
 

@@ -45,3 +45,4 @@ pytest tests/ -q                       # 99 tests
 - [`docs/THESIS.md`](docs/THESIS.md) — fondements (références académiques, retour d'expérience, normes quantitatives), traduction en code, robustesse
 - [`docs/METHODS.md`](docs/METHODS.md) — dérivations complètes et méthodes statistiques
 - [`docs/LIMITATIONS.md`](docs/LIMITATIONS.md) — limites déclarées et cibles de vérification
+- [`docs/codex/`](docs/codex/README.md) — codex pédagogique 01..07 (une leçon par journée du projet)
