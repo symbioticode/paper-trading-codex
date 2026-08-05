@@ -197,9 +197,9 @@ paramètres (pour `μ ≤ 0` puis `μ > 0` séparément) ; résolution numériqu
 la thèse est réfutée sur ce régime, et ceci est **publié comme résultat**, pas
 masqué. **Le FAIL réel l'active** : H4 est réfutée sur le bucket de volatilité
 médiane des données réelles ; elle survit sur le global et les régimes 0 et 2.
-C'est un résultat publié, qui pointe la piste d'investigation suivante (modèle
-de pont intra-barre, sélection du couple L/s, ou dépendance au régime de
-volatilité).
+C'est un résultat publié, qui pointe la piste d'investigation suivante
+(dépendance conditionnelle au trigger → **H6**, pré-enregistrée ; modèle de
+pont intra-barre, sélection du couple L/s — hors périmètre de REV03).
 
 ### H5 — Cohérence du numéraire
 
@@ -213,6 +213,52 @@ comptabilisation barre à barre et fermeture en une seule étape ; le PnL d'une
 position fermée = PnL brut − frais d'entrée − frais de sortie − funding payé.
 
 **Critère d'échec.** désaccord de PnL à `1e-9` près → bug.
+
+### H6 — La liquidation est conditionnelle à la morphologie du trigger, pas seulement à `(μ, σ)`
+
+> **Énoncé (REV03 §3).** La probabilité de liquidation conditionnelle à la
+> morphologie du trigger G3 et au régime précédent est mieux calibrée
+> hors-échantillon que la prédiction fondée uniquement sur `μ` et `σ`.
+
+**Constat déclencheur (cité tel quel de `docs/ENQUETE_FAIL.md`, ne pas
+édulcorer).** *« L'entrée en position n'est pas un instant neutre — elle suit
+systématiquement un trigger de momentum (G3), et les données réelles montrent
+un pullback d'exhaustion majoritaire après ce trigger (56 % de TP atteint sous
+6h, 76 % sous 24h). Le modèle iid actuel (`P(liq | μ, σ, L, s)`) ne capture
+pas cette structure conditionnelle, ce qui est la lecture la plus probable du
+FAIL du bucket médian. »* En chiffres (réel vs pont brownien) : `P(min low 6h
+≤ −2 %) = 56 %`, `P(min low 24h ≤ −2 %) = 76 %` (modèle 65 %), low moyen de la
+barre suivante `−1.15 % à −1.55 %` (60–77 % de la distance TP) vs `~−0.7 %`
+(modèle), `P(liq)` à vie sur les mêmes entrées `0.0875` vs `0.2250` (modèle).
+
+**Statut : PRÉ-ENREGISTRÉE (REV03 §3).** Aucun calcul H6 avant ce commit —
+règle producteur : jamais de sélection de variable après avoir vu le résultat.
+Le pré-enregistrement est le contrat de l'hypothèse ; l'implémentation se fera
+sur `feature/h6-conditional-liq`, H4/H2 restant la baseline publiée telle
+quelle.
+
+**Pré-enregistrement (fixé à l'avance, non modifiable sans nouvelle REV) :**
+- *Variables candidates autorisées* (limitées à cette liste) : taille du spike
+  déclencheur (excès du high au-dessus de l'ancre), position du close dans la
+  chandelle, taille des mèches, momentum des heures précédentes, distance à
+  l'ancre, `μ`/`σ` locaux, fréquence récente des triggers, comportement de la
+  barre suivant le trigger.
+- *Découpage temporel* : identique en esprit à H4 — fenêtres non chevauchantes,
+  paramètres estimés sur train uniquement, prédiction sur test hors-échantillon.
+- *Métrique de comparaison* : amélioration de la calibration du Wald
+  cluster-robuste sur le **même bucket vol 1** qui a échoué en H4 (global inchangé).
+- *Nombre maximal de variantes* : **3** ; au-delà, correction de Bonferroni
+  (α/k) sur la métrique. Toute variante testée doit être listée ici avant son
+  calcul.
+
+**Test.** `tests/test_conditional.py` (écrit depuis ce pré-enregistrement, pas
+depuis l'implémentation) + `src/risk/conditional.py` (extension, ne modifie ni
+`two_barriers.py` ni le pipeline H4).
+
+**Critère d'échec.** la prédiction conditionnelle ne réduit pas l'écart du
+bucket vol 1 hors-échantillon par rapport à H4, ou la réduction n'est pas
+significative au seuil fixé (avec correction pour comparaisons multiples) → H6
+réfutée. **H4 reste réfutée et publiée telle quelle, H6 ne la remplace pas.**
 
 ---
 

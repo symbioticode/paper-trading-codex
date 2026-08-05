@@ -1,4 +1,4 @@
-# Codex pédagogique 01..07
+# Codex pédagogique 01..08
 
 > Sept leçons, une par journée du projet. Chaque leçon est autonome : une
 > question, la méthode, le piège qui s'est réellement présenté (avec sa
@@ -17,6 +17,7 @@
 | 05 | [Le simulateur et les biais de mesure](05-simulateur-biais.md) | Pourquoi un backtest ment, et comment l'empêcher de mentir ? |
 | 06 | [Calibrer le test avant de croire](06-calibrer-le-test.md) | Pourquoi le test « classique » rejetait 3× trop souvent ? |
 | 07 | [La validation hors-échantillon](07-validation-hors-echantillon.md) | Que prouve réellement un PASS ? Et un FAIL ? |
+| 08 | [H6 : pré-enregistrer une hypothèse conditionnelle](08-h6-conditionnelle.md) | Que faire d'un FAIL robuste, sans réparer H4 ni tricher ? |
 
 ## Comment lire le codex
 
