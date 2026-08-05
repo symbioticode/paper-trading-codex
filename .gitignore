@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Environnement
+.venv/
+venv/
+.env
+
+# Données brutes (ré-téléchargeables, provenance enregistrée)
+data/raw/
+data/external/
+
+# Sorties générées (toujours régénérables via run_reproducible.sh)
+reports/
+*.png
+MANIFEST.lock
+
+# Divers
+.coverage
+htmlcov/
+.pytest_cache/
+.ipynb_checkpoints/
