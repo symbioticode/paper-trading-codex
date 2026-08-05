@@ -15,7 +15,7 @@ venv/
 data/raw/
 data/external/
 
-# Sorties générées (toujours régénérables via run_reproducible.sh)
+# Sorties générées (régénérables via scripts/ ; TD-002 : run_reproducible.sh cible 2026-09-30)
 reports/
 *.png
 MANIFEST.lock

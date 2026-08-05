@@ -23,7 +23,7 @@ cohérent (H5).
 |---|---|
 | Contrôle GBM (modèle vrai par construction) | **PASS** — global `p̂=0.1245` vs `P̂=0.1206` (±0.014) |
 | Données réelles SOLUSDT perp 1h (51 594 barres) | **FAIL** (réfuté) — global `p̂=0.110` vs `P̂=0.124` OK, mais bucket vol 1 `p̂=0.0845` vs `P̂=0.1245` (±0.020) HORS |
-| Tests unitaires | **101 verts** (`python -m pytest tests/ -q`, venv sol-grid-lab) |
+| Tests unitaires | **103 verts** — voir [`docs/STATUS.md`](docs/STATUS.md) (source unique, régénérée par `python -m pytest tests/ -q`) |
 | PnL constaté (réel, hors thèse — mesure) | **−2 336 USD** / 3 256 trades, capital 10 000 (equity finale 7 663 USD) |
 
 Un échec de validation est un **résultat publié** (l'hypothèse en défaut,
@@ -39,7 +39,7 @@ source activate.sh                # alternative : venv + LD_LIBRARY_PATH manuel
 python scripts/03_ground_truth.py      # H2 : formule exacte sous GBM
 python scripts/04_validate_thesis.py   # H4 : contrôle GBM (doit PASSER)
 python scripts/04_validate_thesis.py --data real   # H4 : données réelles (FAIL connu, bucket vol 1)
-python -m pytest tests/ -q             # 100 tests
+python -m pytest tests/ -q             # 103 tests — cf. docs/STATUS.md (source unique)
 ```
 
 ## Références

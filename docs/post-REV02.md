@@ -1,6 +1,9 @@
 # POST-REV02 — Bilan des corrections : AVANT vs APRÈS
 
-Date : REV02 traitée et poussée sur GitHub (main, jusqu'au commit `c0282ba`).
+Date : REV02 traitée et poussée sur GitHub. **Ce document rapporte les
+résultats du commit `a986c81`** (moteur corrigé, PnL −2 336 USD, calibration
+re-faite avec plancher `V_floor`, TD-004 clôturé) — état audité figé sur
+`baseline/rev02-audited` (tag `v0-rev02-audited`).
 Source : `docs/rev/REV02.md`. Rôle : enregistrer, de façon synthétique et
 compréhensible, ce que la révision a entraîné — pour relire l'historique sans
 re-fouiller les commits.
