@@ -164,6 +164,21 @@ Le code refuse de charger des données sans provenance (`load_with_provenance`),
 et les valeurs de spec vivent dans **un seul** endroit (`exchange_spec.py`) :
 quand une vérification aboutit, la correction est une ligne, pas une chasse.
 
+### 4.1 Tableau ASSUME → vérifié / toujours ASSUME (REV03 §5)
+
+À mettre à jour **au fil des vérifications** (endpoint Binance, compte démo,
+données 1 min), pas seulement à la fin. Aucun ASSUME ne passe à « vérifié »
+sans la preuve correspondante ; sinon il reste « toujours ASSUME ».
+
+| Assomption (REV03 §5) | Statut | Preuve / cible | Quand vérifier |
+|---|---|---|---|
+| MMR réelle et brackets (`TIER_1_MMR = 0.50 %`) | toujours ASSUME | `GET /fapi/v1/leverageBracket?symbol=SOLUSDT` (401 sans clé API au 2026-08-04) | avant tout paper trading proche production |
+| Frais exacts (maker/taker VIP 0, sans BNB) | toujours ASSUME | Page Binance « Futures fees » / compte réel | avant paper trading |
+| Source du mark/index pour le funding | toujours ASSUME | Comparer close vs index sur les barres de funding | avant paper trading |
+| Comportement réel de liquidation et ADL | toujours ASSUME | Compte démo / docs Binance ; documenter l'écart liq théorique vs liq ADL | avant paper trading |
+| Ordre intra-barre (données 1 min) | toujours ASSUME | Ré-échantillonner 1 min sur la même fenêtre ; mesurer l'erreur du pont | quand les données sont disponibles |
+| Slippage dépendant de la taille | toujours ASSUME | Carnet d'ordres / exécution réelle (liquidity) | quand exécution réelle |
+
 ---
 
 ## 5. Dettes tracées (REV2)
