@@ -20,13 +20,22 @@ RATTACHEMENT : H5 (cohérence du numéraire), support de H4.
     E6  Ordre dans une barre : liquidation (touch sur high) AVANT take-profit
         (touch sur low). Si les deux se touchent, la liq gagne (conservateur).
     E7  Funding : pour un SHORT, funding_rate > 0 ⇒ shorts REÇOIVENT
-        (les longs paient). PnL funding = rate × notionnel courant.
-        Marque = close de la barre (ASSUME, vérification : prix index).
+        (les longs paient). PnL funding = rate × notionnel D'OUVERTURE, FIGÉ
+        (le notionnel n'est pas réévalué au mark — ASSUME, approximation ;
+        marque = close de la barre, ASSUME, vérification : prix index).
     E8  Slippage paramétrique (bps) : entrée short = close·(1 − slip),
         sortie = prix cible·(1 + slip). Liquidation non affectée.
         ASSUME : slip constant, indépendant de la taille (vérif. : marché).
     E9  Aucune exception avalée : tout appel au moteur qui reçoit un signal
         invalide lève une erreur explicite.
+    E10 PnL d'un SHORT = (entry − prix)·qty — LE LEVIER N'INTERVIENT JAMAIS sur
+        le PnL, uniquement sur la marge (margin = notional/L, E2). `qty` est
+        l'exposition pleine en SOL, pas des unités de marge : c'est la convention
+        de H1 (docs/METHODS.md §3, `(E − liq)·qty`). Correction REV2 — l'ancienne
+        formule multipliait le PnL par `L` une seconde fois (double comptage).
+    E11 Frais de sortie sur le notionnel DE SORTIE : exit_fee = qty·exit_price
+        ·taker_fee (frais d'entrée sur le notionnel d'entrée, E3). Correction
+        REV2 — l'ancienne formule utilisait le notionnel d'entrée.
 
   Toute position ouverte est un SHORT (le projet est un grid SHORT).
 """
@@ -65,8 +74,12 @@ class Position:
     funding: float = 0.0
 
     def unrealized(self, price: float) -> float:
-        """DEDUCE : PnL non réalisé d'un SHORT = (entry − prix)·qty·L."""
-        return (self.entry - price) * self.qty * self.leverage
+        """E10 : PnL non réalisé d'un SHORT = (entry − prix)·qty.
+
+        Le levier n'apparaît que via la marge (`margin = notional/L`, E2) :
+        multiplier ici par `L` reviendrait à compter le levier DEUX fois.
+        """
+        return (self.entry - price) * self.qty
 
 
 @dataclass
@@ -238,12 +251,14 @@ class SimulationEngine:
         if rate is None or rate == 0.0:
             return
         for pos in self.positions:
-            # E7 : SHORT reçoit rate×notionnel quand rate>0.
+            # E7 : SHORT reçoit rate×notionnel d'ouverture (figé) quand rate>0.
             pos.funding += rate * pos.notional
 
     def _close(self, pos: Position, exit_price: float, bar: Bar, reason: str) -> Trade:
-        exit_fee = pos.notional * self.taker_fee
-        gross = pos.unrealized(exit_price)          # (entry − exit)·qty·L
+        # E11 : frais de sortie sur le notionnel DE SORTIE (qty·exit), pas
+        # d'entrée (corrigé REV2).
+        exit_fee = pos.qty * exit_price * self.taker_fee
+        gross = pos.unrealized(exit_price)          # (entry − exit)·qty (E10)
         delta_cash = gross - exit_fee + pos.funding
         net = delta_cash - pos.entry_fee
 

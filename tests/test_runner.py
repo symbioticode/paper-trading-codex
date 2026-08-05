@@ -34,8 +34,12 @@ def test_cycle_complet_ouvre_ferme_au_tp_et_gagne_la_taille_de_grille(cfg):
     assert t.reason == "take_profit"
     assert t.entry == pytest.approx(100.0)       # R1 : exécution au close
     assert t.exit == pytest.approx(100.0 * 0.95)
-    assert t.gross_pnl == pytest.approx((100 - 95) * 10 * 5)
-    assert t.net_pnl == pytest.approx((100 - 95) * 10 * 5 - 1000 * 0.0002 - 1000 * 0.0004)
+    # E10 : gross = (entry − exit)·qty (sans levier — convention H1) ; E11
+    # : frais de sortie sur le notionnel de sortie.
+    entry_fee = 10.0 * 100.0 * 0.0002
+    exit_fee = 10.0 * 95.0 * 0.0004
+    assert t.gross_pnl == pytest.approx((100 - 95) * 10.0)
+    assert t.net_pnl == pytest.approx((100 - 95) * 10.0 - entry_fee - exit_fee)
     assert res.engine.equity_usd() == pytest.approx(10_000 + t.net_pnl)
 
 
@@ -63,8 +67,11 @@ def test_funding_credite_le_short_dans_le_runner(cfg):
     res = run_backtest(seq, ShortGridStrategy(cfg), funding_map=fund)
     t = res.engine.trades[0]
     assert t.funding == pytest.approx(1000.0 * 0.001)
+    # E10 (sans levier) + E11 (frais de sortie sur notionnel de sortie)
+    entry_fee = 10.0 * 100.0 * 0.0002
+    exit_fee = 10.0 * 95.0 * 0.0004
     assert t.net_pnl == pytest.approx(
-        (100 - 95) * 10 * 5 - 1000 * 0.0002 - 1000 * 0.0004 + 1.0)
+        (100 - 95) * 10.0 - entry_fee - exit_fee + 1.0)
 
 
 def test_policy_resize_reduit_la_taille_au_lieu_de_skipper(cfg):

@@ -42,9 +42,17 @@ def test_pnl_take_profit_exact():
     eng.on_bar(bar(close=97.0, high=101.0, low=97.0))
     t = eng.trades[-1]
     assert t.reason == "take_profit"
-    # gross = (100−98)·10·5 = 100 ; fees : 1000·0.0002 + 1000·0.0004
-    assert t.gross_pnl == pytest.approx(100.0)
-    assert t.net_pnl == pytest.approx(100 - 0.2 - 0.4)
+    # E10 (écrit depuis H1, docs/METHODS.md §3) : PnL d'un SHORT =
+    # (entry − exit)·qty, SANS multiplier par le levier. qty est l'exposition
+    # pleine en SOL ; le levier n'agit que via la marge (E2). L'ancienne
+    # formule (entry−exit)·qty·L gonflait le PnL d'un facteur L (bug REV2).
+    # Non-régression : ce test échouerait sur l'ancienne formule (100 ≠ 20).
+    assert t.gross_pnl == pytest.approx((100 - 98) * 10.0)
+    assert t.gross_pnl == pytest.approx(20.0)
+    # E11 : frais d'entrée = qty·entry·maker, frais de sortie = qty·exit·taker
+    entry_fee = 10.0 * 100.0 * 0.0002
+    exit_fee = 10.0 * 98.0 * 0.0004
+    assert t.net_pnl == pytest.approx(20.0 - entry_fee - exit_fee)
     assert eng.equity_usd() == pytest.approx(10_000 + t.net_pnl, rel=1e-12)
 
 # ─── E5 : liquidation ────────────────────────────────────────────────────────
@@ -88,7 +96,10 @@ def test_short_recoit_si_funding_positif():
     eng.on_bar(bar(close=98.0, low=98.0))   # ferme au TP
     t = eng.trades[-1]
     assert t.funding == pytest.approx(1.0)
-    assert t.net_pnl == pytest.approx(100 - 0.2 - 0.4 + 1.0)
+    # E10 : gross = (100−98)·10 = 20 ; funding +1 ; frais E11
+    entry_fee = 10.0 * 100.0 * 0.0002
+    exit_fee = 10.0 * 98.0 * 0.0004
+    assert t.net_pnl == pytest.approx(20.0 - entry_fee - exit_fee + 1.0)
 
 def test_funding_nul_sans_effet():
     eng = make_engine()
@@ -148,8 +159,8 @@ def test_slippage_sortie_tp():
     t = eng.trades[-1]
     assert t.reason == "take_profit"
     assert t.exit == pytest.approx(pos.tp_price * 1.005)
-    # gross = (entry − exit)·qty·L, avec exit dégradé par le slippage
-    assert t.gross_pnl == pytest.approx((99.5 - pos.tp_price * 1.005) * 10 * 5)
+    # E10 : gross = (entry − exit)·qty, sans levier ; E8 : exit dégradé
+    assert t.gross_pnl == pytest.approx((99.5 - pos.tp_price * 1.005) * 10.0)
 
 
 # ─── E9 : signaux invalides ──────────────────────────────────────────────────
