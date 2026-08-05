@@ -228,11 +228,12 @@ position fermée = PnL brut − frais d'entrée − frais de sortie − funding 
 
 ## 5. Reproductibilité
 
-> **TD-002** (dette de traçabilité, REV02 #6) : `run_reproducible.sh`, `MANIFEST`
-> et `flake.nix` sont déclarés ici mais **absents du repo** — la reproductibilité
-> réelle passe aujourd'hui par `activate.sh` (venv) + `python -m pytest tests/ -q`
-> + `scripts/03/04_validate_thesis.py`. Cible : aligner les artefacts avant toute
-> publication externe (voir `docs/LIMITATIONS.md` §6).
+> **TD-002** (dette de traçabilité, REV02 #6 ; replanifiée REV03 §1) :
+> `run_reproducible.sh`, `MANIFEST` et `flake.nix` sont déclarés ici mais
+> **absents du repo** — la reproductibilité réelle passe aujourd'hui par
+> `activate.sh` (venv) + `python -m pytest tests/ -q` + `scripts/03/04_validate_thesis.py`.
+> **TODO explicite, cible 2026-09-30** : aligner les artefacts avant toute
+> publication externe (voir `docs/LIMITATIONS.md` §5).
 
 - Toute donnée (réelle ou synthétique) a une provenance : `metadata.json`
   (source, intervalle, plage, horodatage, sha256 du fichier).
