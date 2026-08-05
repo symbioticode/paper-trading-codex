@@ -100,11 +100,31 @@ Le découpage `train=2000 h / test=1000 h` couvre une partie de l'historique
 
 ### 2.4 Le PnL est un constat, pas une promesse
 
-Le PnL (+176 933 USD sur 3 256 trades) est une **mesure** sur la fenêtre
-testée, séparée de la thèse. Il ne prouve ni la rentabilité future, ni la
-sûreté du levier. En particulier, il ne corrige pas du biais de sélection de
-paramètres (le couple L/s a été choisi par le porteur du projet, pas par une
-procédure publiée).
+Le PnL (**−2 336 USD sur 3 256 trades**, equity finale 7 663 USD, capital
+10 000) est une **mesure** sur la fenêtre testée, séparée de la thèse. Il ne
+prouve ni la rentabilité future, ni la sûreté du levier. En particulier, il ne
+corrige pas du biais de sélection de paramètres (le couple L/s a été choisi par
+le porteur du projet, pas par une procédure publiée).
+
+**Correction REV2.** Une première version de ce rapport publiait « +176 933 USD »
+: la formule d'évaluation du moteur multipliait le PnL par le levier (le PnL
+latent comme le PnL de TP l'étaient déjà par la définition du trade), doublant
+l'exposition. Corrigée, la mesure est **négative** — le constat mesuré, lui,
+reste conforme au contrat : chiffré, régénérable, daté.
+
+**Effet de bord REV2 — solvabilité du contrôle GBM.** REV02 affirmait « H4
+n'est pas affecté ». C'est **vrai sur les données réelles** (aucun skip cash,
+chiffres H4 identiques avant/après correction) mais **faux sur le contrôle
+GBM** : la boucle de backtest redimensionne/saute les positions selon le cash
+disponible (R5). Sur GBM à dérive positive, la grille SHORT perd (à juste
+titre) de l'argent : à capital 10 000, elle se vide, R5 tronque l'échantillon
+et le contrôle échoue (bucket vol 2) — une **contamination de portefeuille,
+pas un défaut de machinerie**. Preuve : à capital ≥ 1 M, R5 ne se déclenche
+jamais et le contrôle reproduit **exactement** le PASS publié (seed 60 :
+n=6649, p̂=0.1245 vs P̂=0.1206, tous buckets OK). Le contrôle GBM de
+`04_validate_thesis.py` utilise donc par défaut un capital abondant pour
+isoler H4 (géométrie L/s) de la solvabilité (voir docstring du script) ;
+les données réelles gardent le capital du constat (10 000, aucun skip).
 
 **Pas de benchmark Buy&Hold (REV1, β=N).** Ce livrable ne contient **aucun**
 benchmark Buy&Hold ni plafond de référence : le PnL constaté n'est comparé à
@@ -140,3 +160,23 @@ fenêtre testée.
 Le code refuse de charger des données sans provenance (`load_with_provenance`),
 et les valeurs de spec vivent dans **un seul** endroit (`exchange_spec.py`) :
 quand une vérification aboutit, la correction est une ligne, pas une chasse.
+
+---
+
+## 5. Dettes tracées (REV2)
+
+| Dette | Statut | Détail |
+|---|---|---|
+| **TD-001** — PnL multiplié par le levier (`unrealized()`) | **CORRIGÉ** (REV2) | `unrealized()` → `(entry−price)·qty` ; frais de sortie sur `qty·exit` (E11) ; funding sur notionnel d'ouverture figé (E7) ; tests réécrits depuis H1. Chiffres PnL régénérés : **−2 336 USD / 3 256 trades** (ancien +176 933 USD). |
+| **TD-002** — reproductibilité déclarée en avance sur le repo | **OUVERT** | `run_reproducible.sh`, `MANIFEST`, `flake.nix`, `validate_thesis.py` référencés dans la doc, absents du repo (REV02 #6). Cible : créer les artefacts avant publication externe ; en attendant, reproductibilité via `activate.sh` + `pytest` + scripts 03/04. |
+| **TD-003** — compteur `n_censored` (sémantique W3/V7) | **CORRIGÉ** (REV2) | Scindé en `n_open_at_end` (positions réellement ouvertes en fin de jeu, censure V7) et `n_hors_fenetres` (résolus hors fenêtres). Test écrit depuis le texte W3/V7. |
+| **TD-004** — calibration H4 invalidée par REV2 | **OUVERT** | La calibration « global 0/20 → ≈ 80 % » (HYPOTHESIS/METHODS/THESIS/codex06) a été mesurée sur le moteur AVANT la correction du double levier. Re-mesure (même config 30 000 h / capital 1 M) : global 5/20 (25 %), buckets 3/60 (5 %). Causes : contamination de portefeuille (R5 tronque l'échantillon quand la grille SHORT saigne sur le GBM à dérive positive ; le plafond de notionnel sature à prix ×400) et effondrement de `V_rob` (fenêtres à fréquences quasi identiques, 2–3 par bucket). Cible : re-calibrer sur une configuration non contaminée (ex. capital abondant + horizon court) ou corriger la pathologie `V_rob`. |
+
+---
+
+## 6. Notes de révision
+
+- **REV2 #5 (resize) : à rejeter.** `n_skipped_cash/cap` est documenté dans R5
+  de `runner.py` (« skip uniquement si la qty résultante est nulle ») ; le
+  comportement actuel est conforme à la doc. Aucune correction — noté pour ne
+  pas relancer une fausse alerte.

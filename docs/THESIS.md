@@ -100,8 +100,10 @@ construction, à la manière d'un retour d'expérience de backtest.
 - **Calibration du test sur un contrôle où le modèle est vrai par
   construction.** Un test statistique qui se trompe ne peut pas être détecté
   par lui-même : on mesure donc son taux de faux rejets sur le contrôle GBM
-  avant de l'appliquer aux données réelles (METHODS.md §5). C'est la norme qui
-  justifie le PASS ≈ 80 % (4 tests indépendants à 95 %, 0.95⁴ ≈ 0.81).
+  avant de l'appliquer aux données réelles (METHODS.md §5). Mesurée en J6 à
+  ≈ 80 % (`0.95⁴ ≈ 0.81`) ; **cette calibration est invalidée par la
+  correction REV2 du PnL** (re-mesure : global 5/20, buckets 3/60 — voir
+  HYPOTHESIS.md §H4, TD-004).
 - **Une hypothèse réfutée est un résultat publié**, pas un bug (H4).
 - **Provenance de toute donnée** : sha256, source, intervalle, paramètres
   (`data/data_loader.py`), données synthétiques étiquetées `synthetic` et
@@ -122,7 +124,7 @@ attendue.
 
 | Implémentation | `liquidation_price_short`, `liquidation_distance_short`, `mmr_for_notional` |
 |---|---|
-| Test | `tests/test_exchange_spec.py`, `tests/test_liquidation.py` |
+| Test | `tests/test_exchange_spec.py` |
 | Attente | `liq = E·(1+1/L)/(1+MMR)` exact ; cas limites exacts (`L→∞` → liq=E figé car `1/L<MMR`, `MMR→0` → `E·(1+1/L)`, `L→1` → `≈2E`) ; monotonie en L et MMR. |
 | Critère d'échec | toute propriété algébrique contredite. |
 
@@ -130,7 +132,7 @@ attendue.
 
 | Implémentation | `_prob_from_ab` (forme `expm1` numériquement stable), `prob_liquidation_short`, `simulate_two_barrier` |
 |---|---|
-| Test | `tests/test_two_barrier.py`, `tests/test_ground_truth.py`, `scripts/03_ground_truth.py` |
+| Test | `tests/test_two_barrier.py`, `scripts/03_ground_truth.py` |
 | Attente | Monte Carlo continu à N=10 000 : `|p̂ − P| ≤ 5·√(P(1−P)/N)` ; cas limites exacts (`μ→0 ⇒ a/(a+b)`, `b→0 ⇒ P→1`, `a→0 ⇒ P→0`). |
 | Critère d'échec | écart hors 5σ → la formule ou sa programmation est fausse. C'est l'**ancre anti-contradiction** du projet. |
 
@@ -155,7 +157,7 @@ attendue.
 
 | Implémentation | `SimulationEngine` (E1–E9), `_close`, `_liquidate` |
 |---|---|
-| Test | `tests/test_engine.py`, `tests/test_metrics.py`, `tests/test_runner.py` |
+| Test | `tests/test_engine.py`, `tests/test_runner.py` |
 | Attente | PnL cumulé USD identique (à 1e-9) entre comptabilisation barre à barre et fermeture en une étape ; frais d'entrée débités une seule fois ; funding net appliqué au SHORT (rate>0 ⇒ shorts reçoivent) ; slippage (E8) appliqué à l'entrée **et** à la sortie TP, liquidation non affectée. |
 | Critère d'échec | désaccord de PnL → bug. |
 
@@ -182,9 +184,13 @@ prédiction de probabilité à une fréquence observée quand les observations n
 sont pas indépendantes ? Au lieu de choisir un test « classique » (Wilson) et
 de le croire, on a **mesuré son défaut sur le contrôle** (sur-rejet ~11/20 au
 lieu de ~5 %), puis **construit** le test cluster-robuste, puis **re-mesuré sa
-calibration** (global 0/20, buckets 4/60 ⇒ PASS global ≈ 0.95⁴). La norme est
-explicite : on ne croit un test que s'il se comporte à son niveau nominal quand
-le modèle est vrai.
+calibration** (J6 : global 0/20, buckets 4/60 ⇒ ≈ 0.95⁴). **REV2 : la
+correction du PnL du moteur invalide cette calibration** — re-mesurée, elle
+donne global 5/20 (25 %), buckets 3/60 (5 %), pour les raisons documentées dans
+HYPOTHESIS.md §H4 (contamination de portefeuille, `V_rob`≈0). La norme reste :
+on ne croit un test que s'il se comporte à son niveau nominal quand le modèle
+est vrai — mais la calibration de référence doit être re-faite sur une
+configuration de contrôle non contaminée (TD-004).
 
 ### 4.3 Les biais de mesure sont quantifiés et corrigés, pas supposés
 

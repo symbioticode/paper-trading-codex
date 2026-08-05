@@ -23,8 +23,8 @@ cohérent (H5).
 |---|---|
 | Contrôle GBM (modèle vrai par construction) | **PASS** — global `p̂=0.1245` vs `P̂=0.1206` (±0.014) |
 | Données réelles SOLUSDT perp 1h (51 594 barres) | **FAIL** (réfuté) — global `p̂=0.110` vs `P̂=0.124` OK, mais bucket vol 1 `p̂=0.0845` vs `P̂=0.1245` (±0.020) HORS |
-| Tests unitaires | **100 verts** (`python -m pytest tests/ -q`, venv sol-grid-lab) |
-| PnL constaté (réel, hors thèse — mesure) | +176 933 USD / 3 256 trades, capital 10 000 |
+| Tests unitaires | **101 verts** (`python -m pytest tests/ -q`, venv sol-grid-lab) |
+| PnL constaté (réel, hors thèse — mesure) | **−2 336 USD** / 3 256 trades, capital 10 000 (equity finale 7 663 USD) |
 
 Un échec de validation est un **résultat publié** (l'hypothèse en défaut,
 l'écart, la significativité), pas un bug. Le FAIL réel est publié dans

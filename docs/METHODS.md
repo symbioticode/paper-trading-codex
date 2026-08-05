@@ -69,7 +69,7 @@ liq = E·(1 + 1/L) / (1 + MMR)
 **Référence** : spec Binance USDT-M « Risk limits » (structure des tiers),
 formule d'équilibre de solde de marge.
 **Code** : `src/market/exchange_spec.py::liquidation_price_short`.
-**Test** : `tests/test_exchange_spec.py`, `tests/test_liquidation.py`.
+**Test** : `tests/test_exchange_spec.py`.
 
 ---
 
@@ -114,8 +114,8 @@ P(liq) = e^{2μb/σ²} · expm1(2μa/σ²) / expm1(2μ(a+b)/σ²)   (μ < 0)
 **Référence** : Karlin & Taylor (1975) ch. 7 ; Borodin & Salminen (2002) —
 probabilité de premier passage à deux barrières du mouvement brownien
 arithmétique. **Code** : `src/risk/two_barriers.py::_prob_from_ab`.
-**Test** : `tests/test_two_barrier.py` (cas limites, monotonies) et
-`tests/test_ground_truth.py` (Monte Carlo continu, tolérance 5σ).
+**Test** : `tests/test_two_barrier.py` (cas limites, monotonies, Monte Carlo
+continu 5σ).
 
 ### 4.2 Vérité terrain par Monte Carlo continu (H2)
 
@@ -205,10 +205,17 @@ indépendamment du modèle : un biais constant gonfle `|p̂ − P̂|` sans gonfl
 `V`, donc le test devient **puissant contre un biais systématique**. Ce choix
 est documenté comme un rejet délibéré d'une alternative (J6).
 
-**Calibration (la norme §2.3 de THESIS.md).** Sur 20 seeds du contrôle GBM :
-global 0/20, buckets 4/60, soit **PASS global ≈ 80 %**, cohérent avec 4 tests
-indépendants à 95 % (`0.95⁴ ≈ 0.81`). Un run isolé peut donc échouer par
-design (~1/5) : c'est le prix d'un test calibré, pas un défaut du modèle.
+**Calibration (la norme §2.3 de THESIS.md).** Mesurée initialement sur 20 seeds
+du contrôle GBM (J6, moteur AVANT la correction REV2 du PnL) : global 0/20,
+buckets 4/60, soit **PASS global ≈ 80 %** (`0.95⁴ ≈ 0.81`). **Re-mesurée après
+REV2 (moteur corrigé, même config : 30 000 h, capital 1 M) : global 5/20 (25 %),
+buckets 3/60 (5 %).** Les buckets restent au niveau nominal, mais le global
+sur-rejette : (1) contamination de portefeuille — la grille SHORT saigne sur le
+GBM à dérive positive, R5 (cash/notionnel) tronque l'échantillon ; (2)
+effondrement de `V_rob` quand les fenêtres d'un bucket ont des fréquences quasi
+identiques (2–3 fenêtres). La norme « ≈ 80 % » est donc **invalidée** par REV2 ;
+re-calibration sur une configuration non contaminée en cours (TD-004). Un run
+isolé ne doit plus être lu comme un rejet calibré à 95 %.
 
 **Référence** : Cameron & Miller (2015) ; Liang & Zeger (1986).
 **Code** : `src/validation/thesis.py::cluster_robust_test`.
@@ -276,7 +283,7 @@ fermait au prix cible sans slippage, ce qui surestimait le PnL net dès que
 et fermeture en une étape ; PnL d'une position fermée = PnL brut − frais
 d'entrée − frais de sortie − funding payé. Désaccord à `1e-9` → bug.
 **Code** : `src/simulator/engine.py`. **Tests** : `tests/test_engine.py`,
-`tests/test_metrics.py`, `tests/test_runner.py`.
+`tests/test_runner.py`.
 
 ---
 
@@ -286,7 +293,7 @@ d'entrée − frais de sortie − funding payé. Désaccord à `1e-9` → bug.
 |---|---|---|
 | H2 continu (L=5, s=2%, μ=0.0005/h, σ=0.03/h) | `p̂` vs `P` dans 5σ | `03_ground_truth.py` |
 | Biais de granularité (contrôle, L=5, s=2%, σ=2.5%) | continue ≈ 0.108 vs observé ≈ 0.111 | mesuré via `04_validate_thesis.py` |
-| Calibration (20 seeds, contrôle) | global 0/20, buckets 4/60, PASS ≈ 80 % | `tests/test_thesis.py` |
+| Calibration (20 seeds, contrôle) | **invalidée par REV2** : initiale 0/20 global, 4/60 buckets (moteur buggé) ; re-mesure global 5/20, buckets 3/60 (contamination portefeuille + `V_rob`≈0). Re-calibration en cours (TD-004) | `tests/test_thesis.py` |
 | H4 contrôle GBM (seed 60) | global `p̂=0.1245` vs `P̂=0.1206` (±0.014), **PASS** | `04_validate_thesis.py` |
 | H4 données réelles (51 594 barres) | **FAIL** : global `p̂=0.1100` vs `P̂=0.1236` (±0.0149) OK ; bucket vol 1 `p̂=0.0845` vs `P̂=0.1245` (±0.0196) **HORS** ; buckets 0/2 OK. Reproductible (venv sol-grid-lab, 2 runs identiques) | `04_validate_thesis.py --data real` |
-| PnL constaté (réel, hors thèse) | +176 933 USD / 3 256 trades (capital 10 000), 3 positions ouvertes | `04_validate_thesis.py --data real` |
+| PnL constaté (réel, hors thèse) | **−2 336 USD** / 3 256 trades (capital 10 000, equity finale 7 663 USD), 3 positions ouvertes | `04_validate_thesis.py --data real` |

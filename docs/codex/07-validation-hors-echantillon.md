@@ -39,8 +39,13 @@ volatilité. Rien d'autre.
 La discipline : **le modèle est vrai par construction sur le contrôle GBM**,
 donc la validation complète DOIT y passer (seed 60 : PASS, `p̂=0.1245` vs
 `P̂=0.1206` ±0.014). Si elle échouait sur le contrôle, ce serait la machinerie
-(estimation, simulateur, test) qui serait en cause, pas le marché. Ce n'est
-qu'ensuite qu'on applique le test aux **données réelles** (SOLUSDT perp 1h,
+(estimation, simulateur, test) qui serait en cause, pas le marché. Note REV2 :
+le contrôle s'exécute avec un **capital abondant** (1 M USD) — H4 mesure la
+fréquence de liquidation (géométrie L/s), pas la solvabilité du portefeuille.
+À capital 10 000, la grille SHORT se vide sur le GBM à dérive positive (le
+PnL corrigé est négatif) et le skip cash (R5) tronque l'échantillon : le
+contrôle échouerait pour une raison de portefeuille, pas de machinerie. Ce
+n'est qu'ensuite qu'on applique le test aux **données réelles** (SOLUSDT perp 1h,
 51 594 barres) : résultat **FAIL publié** — global `p̂=0.1100` vs `P̂=0.1236`
 ±0.0149 OK, mais bucket de volatilité médiane `p̂=0.0845` vs `P̂=0.1245`
 ±0.0196 **HORS** (écart 0.040) ; buckets 0 et 2 OK. **H4 est réfutée sur le
@@ -54,9 +59,11 @@ Que **sur ces fenêtres, sous ces assomptions** (GBM comme modèle de référenc
 volatilité constante par fenêtre, MMR, frais, funding, granularité intra-barre
 modélisée par un pont), la fréquence de liquidation est prévisible à la
 précision annoncée. Un PASS ne prouve **ni** la rentabilité **ni** la sûreté
-d'un levier. C'est pourquoi le PnL est un **constat séparé** (mesure +176 933
-USD sur 3 256 trades, capital 10 000 — hors thèse), jamais un argument de
-validation.
+d'un levier. C'est pourquoi le PnL est un **constat séparé** (mesure −2 336 USD
+sur 3 256 trades, capital 10 000 — hors thèse), jamais un argument de
+validation. Note REV2 : le PnL publié a été corrigé — l'ancienne formule du
+moteur multipliait le PnL par le levier (double comptage), gonflant un résultat
+négatif en +176 933 USD.
 
 ## Que signifie un FAIL ?
 

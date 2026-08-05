@@ -55,7 +55,7 @@ d = (liq − E)/E = (1/L − MMR)/(1 + MMR)
 
 ## Mesuré dans le projet
 
-`tests/test_liquidation.py` vérifie ces propriétés algébriques (monotonie en L
+`tests/test_exchange_spec.py` vérifie ces propriétés algébriques (monotonie en L
 et MMR, bornes, seuil de non-viabilité) **et** la cohérence avec
 l'approximation au premier ordre. Le statut des valeurs est explicite :
 `TIER_1_MMR = 0.0050` est marqué `ASSUME` (à vérifier via

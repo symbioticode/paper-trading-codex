@@ -47,7 +47,7 @@ Deux détails qui comptent :
 
 Comment savoir si un test statistique se comporte correctement ? **On mesure
 son taux de faux rejets sur un jeu où le modèle est vrai par construction** (le
-contrôle GBM). Résultat de la calibration sur 20 seeds :
+contrôle GBM). Résultat de la calibration sur 20 seeds (moteur J6) :
 
 ```
 global : 0 rejet sur 20
@@ -55,12 +55,23 @@ buckets : 4 rejets sur 60
 PASS global ≈ 80 %  =  0.95⁴  (4 tests indépendants à 95 %)
 ```
 
-Le test se comporte **à son niveau nominal** : quand le modèle est vrai, il
+Le test se comportait **à son niveau nominal** : quand le modèle est vrai, il
 accepte ~80 % du temps (4 tests à 5 % indépendants → 0.95⁴ ≈ 0.81). La
 conséquence est un peu contre-intuitive : **~1 run isolé sur 5 échoue par
 design**, même avec un modèle parfait. C'est le prix d'un test calibré, pas un
 défaut du modèle — et c'est pourquoi on ne lit jamais un FAIL isolé comme une
 preuve.
+
+> **REV2 — calibration invalidée.** Ces 0/20 global provenaient du moteur
+> AVANT la correction du double levier (le PnL gonflé gardait la grille
+> solvable, donc l'échantillon du contrôle jamais tronqué). Re-mesurée après
+> correction (même config 30 000 h / capital 1 M) : global 5/20, buckets 3/60.
+> Les buckets restent au nominal, mais le global sur-rejette — contamination de
+> portefeuille (R5 tronque l'échantillon quand la grille saigne sur le GBM à
+> dérive positive) et effondrement de `V_rob` quand les fenêtres d'un bucket
+> ont des fréquences quasi identiques. La leçon demeure (on ne croit un test
+> que calibré), mais la calibration de référence doit être re-faite sur une
+> configuration non contaminée (TD-004).
 
 ## À retenir
 

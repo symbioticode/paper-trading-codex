@@ -60,7 +60,7 @@ réfutée — c'est un résultat, pas un bug.**
 (marge initiale + PnL non réalisé) doit égaler la marge de maintenance :
 `E·qty/L + (E − liq)·qty = liq·qty·MMR`.
 
-**Test.** `tests/test_liquidation.py` :
+**Test.** `tests/test_exchange_spec.py` :
 - propriétés algébriques (monotonie en `L` et `MMR`, bornes, cas limites `L→∞`, `MMR→0`) ;
 - cohérence avec la formule "approx" historique `E(1 + 1/L − MMR)` à l'ordre 1 en `MMR` ;
 - seuil de non-viabilité : si `1/L < MMR`, la position ne peut pas exister (liq = E).
@@ -82,10 +82,10 @@ réfutée — c'est un résultat, pas un bug.**
 > premier passage à deux barrières du mouvement brownien arithmétique).
 > `a = −ln(1−s) = ln(E/TP)` est la distance logarithmique EXACTE au TP (le moteur
 > ferme à `TP = E·(1−s)`) ; à l'ordre 1 en `s`, `a ≈ s`. La forme exacte est
-> exigée par le test de Monte Carlo (`test_ground_truth.py`) qui discriminerait
+> exigée par le test de Monte Carlo (`test_two_barrier.py`) qui discriminerait
 > les deux à mieux que 1 %.
 
-**Test.** `tests/test_ground_truth.py` et `scripts/03_ground_truth.py` :
+**Test.** `tests/test_two_barrier.py` (Monte Carlo) et `scripts/03_ground_truth.py` :
 - Monte Carlo de `N = 10 000` trajectoires GBM avec barrières absorbantes ;
 - fréquence observée `p̂` vs `P(liq)` prédit ;
 - test binomial bilatéral : rejet si `|p̂ − P| > 5·√(P(1−P)/N)` (≈ 5σ).
@@ -149,10 +149,24 @@ paramètres (pour `μ ≤ 0` puis `μ > 0` séparément) ; résolution numériqu
    systématique) :
    `V_rob = (W/(W−1))·Σ_w (n_w/N)²·(p̂_w − p̂)²`, acceptation si
    `|p̂ − P̂| ≤ t(0,975, W−1)·√V_rob`.
-   Calibration mesurée sur 20 seeds du contrôle : global 0/20, buckets 4/60,
-   soit **PASS global ≈ 80%** — cohérent avec 4 tests indépendants à 95%
-   (global + 3 buckets) : `0.95⁴ ≈ 0.81`. Un run isolé peut donc échouer par
-   design (~1/5) ; c'est le prix d'un test calibré, pas un défaut du modèle.
+   **Calibration initiale (J6, moteur AVANT la correction REV2 du PnL) :
+   global 0/20, buckets 4/60, PASS global ≈ 80 %** — la justification de la
+   norme `0.95⁴ ≈ 0.81`. **Calibration re-mesurée (REV2, moteur corrigé, même
+   config : 30 000 h, capital 1 M) : global 5/20 (25 %), buckets 3/60 (5 %).**
+   Les buckets restent à leur niveau nominal, mais le GLOBAL sur-rejette.
+   Deux causes, distinctes :
+   (1) **Contamination de portefeuille** : la grille SHORT perd de l'argent sur
+   le GBM à dérive positive ; à 30 000 h le prix croît ≈ 400×, le plafond de
+   notionnel et le cash finissent par se saturer (R5), R5 tronque l'échantillon
+   et biaise le global dans le même sens sur toutes les fenêtres.
+   (2) **Effondrement de la marge cluster-robuste** : quand les fenêtres d'un
+   bucket ont des fréquences quasi identiques, `V_rob ≈ 0` et toute dérive
+   (même minime) rejette — pathologie documentée pour les petits nombres de
+   fenêtres par bucket (2–3).
+   → **La norme « ≈ 80 % » est invalidée par la correction REV2** ; une
+   re-calibration sur une configuration de contrôle non contaminée est en cours
+   (TD-004, docs/LIMITATIONS.md §5). Un FAIL isolé doit donc être lu avec
+   prudence — pas comme un rejet calibré à 95 %.
 
 **Test.** `scripts/04_validate_thesis.py` :
 - construction des fenêtres indépendantes (W1–W3) ; estimation `(μ̂, σ̂)` sur
@@ -188,7 +202,7 @@ volatilité).
 > métrique principale. Le PnL en USD d'un portefeuille est invariant au choix
 > de la période de comptabilisation (pas de double comptage de frais/funding).
 
-**Test.** `tests/test_metrics.py` : invariance des PnL cumulés USD entre
+**Test.** `tests/test_runner.py` et `tests/test_engine.py` : invariance des PnL cumulés USD entre
 comptabilisation barre à barre et fermeture en une seule étape ; le PnL d'une
 position fermée = PnL brut − frais d'entrée − frais de sortie − funding payé.
 
@@ -208,6 +222,12 @@ position fermée = PnL brut − frais d'entrée − frais de sortie − funding 
 
 ## 5. Reproductibilité
 
+> **TD-002** (dette de traçabilité, REV02 #6) : `run_reproducible.sh`, `MANIFEST`
+> et `flake.nix` sont déclarés ici mais **absents du repo** — la reproductibilité
+> réelle passe aujourd'hui par `activate.sh` (venv) + `python -m pytest tests/ -q`
+> + `scripts/03/04_validate_thesis.py`. Cible : aligner les artefacts avant toute
+> publication externe (voir `docs/LIMITATIONS.md` §6).
+
 - Toute donnée (réelle ou synthétique) a une provenance : `metadata.json`
   (source, intervalle, plage, horodatage, sha256 du fichier).
 - Toute sortie est régénérable par `scripts/run_reproducible.sh --verify`, qui
@@ -218,7 +238,7 @@ position fermée = PnL brut − frais d'entrée − frais de sortie − funding 
 
 ## 6. Lecture de ce document
 
-Si vous voulez **réfuter** ce projet : exécutez `scripts/validate_thesis.py`.
+Si vous voulez **réfuter** ce projet : exécutez `scripts/04_validate_thesis.py`.
 S'il passe, la thèse survit sur les fenêtres testées — avec les limites
 déclarées dans `docs/LIMITATIONS.md`. S'il échoue, le projet vous dira
 précisément quel énoncé (H1…H5) est en défaut, avec quel écart et quelle

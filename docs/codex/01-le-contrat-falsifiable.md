@@ -26,7 +26,7 @@ trois cases :
 |---|---|---|
 | (a) Définition | Convention posée, non discutable dans le projet | « Marge isolée = notionnel / levier » |
 | (b) Hypothèse | Énoncé testable **avec un critère d'échec** | « La fréquence de liquidation est prévisible à ±t·√V » |
-| (c) Constat mesuré | Résultat d'une mesure, daté, régénérable | « PnL +176 933 USD sur 3 256 trades » |
+| (c) Constat mesuré | Résultat d'une mesure, daté, régénérable | « PnL −2 336 USD sur 3 256 trades » |
 
 La règle d'or : **une hypothèse n'existe que si on peut écrire à l'avance ce
 qui la réfuterait.** Dans ce projet, chaque hypothèse H1…H5 porte un test, et
