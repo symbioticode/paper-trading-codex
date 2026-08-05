@@ -139,7 +139,11 @@ class SimulationEngine:
 
         for pos in list(self.positions):
             if bar.low <= pos.tp_price:
-                self._close(pos, exit_price=pos.tp_price, bar=bar, reason="take_profit")
+                # E8 : slippage sur la sortie TP (ordre marché de rachat) :
+                # exit = tp_price·(1 + slip). Corrigé REV1 (le TP ne se fermait
+                # pas avec le slippage malgré E8 — surestimait le PnL net).
+                exit_price = pos.tp_price * (1.0 + self.slip_bps / 10_000)
+                self._close(pos, exit_price=exit_price, bar=bar, reason="take_profit")
 
         self.history.append(self.state(bar))
 

@@ -137,6 +137,21 @@ def test_liq_prix_reflete_slippage():
         liquidation_price_short(99.5, 5.0, 10 * 99.5), rel=1e-12)
 
 
+def test_slippage_sortie_tp():
+    eng = make_engine(slip_bps=50)
+    eng.open_short(OpenSignal(qty=10.0, leverage=5.0, tp_distance=0.02),
+                   mark=100.0, ts=pd.Timestamp("2020-01-01", tz="UTC"))
+    pos = eng.positions[0]
+    assert pos.entry == pytest.approx(99.5)
+    # low touche le TP : la sortie paie le slippage (E8) → exit = tp·(1+slip)
+    eng.on_bar(bar(close=97.0, high=101.0, low=97.0))
+    t = eng.trades[-1]
+    assert t.reason == "take_profit"
+    assert t.exit == pytest.approx(pos.tp_price * 1.005)
+    # gross = (entry − exit)·qty·L, avec exit dégradé par le slippage
+    assert t.gross_pnl == pytest.approx((99.5 - pos.tp_price * 1.005) * 10 * 5)
+
+
 # ─── E9 : signaux invalides ──────────────────────────────────────────────────
 
 def test_signal_qty_negative_rejete():

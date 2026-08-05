@@ -235,6 +235,24 @@ chaque barre appartient à au plus une fenêtre de test → les fenêtres sont l
 unités d'indépendance du test cluster-robuste. Apprentissage = `[test_start −
 n_train, test_start)`. Par défaut : `n_train=2000 h`, `n_test=1000 h`.
 
+**Indépendance des clusters — garantie par construction (revue REV1).** Une
+position ouverte en fenêtre `i` peut se résoudre (TP ou liq) pendant la fenêtre
+de test `i+1`, c'est-à-dire dans un chemin de prix postérieur à `test_start_{i+1}`.
+Cela n'affecte **aucune** statistique de la fenêtre `i+1` :
+- `(μ̂, σ̂)` de la fenêtre `i+1` sont estimés sur les barres de **train**
+  `closes[train_start:train_end]` uniquement (`thesis.py::validate_thesis`,
+  boucle `est_by_win`) — des barres strictement antérieures à
+  `test_start_{i+1}`. Aucune barre de test (ni leur contenu, ni la résolution
+  d'une position) n'entre dans l'estimation ;
+- l'appartenance d'une position à un bucket est décidée par sa **fenêtre
+  d'ouverture** (`windows.py::tag_opening_indices`, W3), jamais par sa fenêtre
+  de résolution ;
+- le bucketing de régime (V4) se fait sur `σ_train` (volatilité d'apprentissage),
+  donc là encore sur des barres antérieures au test.
+La seule influence de la fenêtre `i` sur `i+1` est celle du **prix** lui-même
+(corrélation naturelle du marché), qui est précisément la dépendance que le
+clustering par fenêtre absorbe.
+
 **Code** : `src/validation/windows.py`, `src/validation/thesis.py`.
 **Script** : `scripts/04_validate_thesis.py`.
 
@@ -249,7 +267,10 @@ restituée avec le PnL net à la clôture (E4). Liquidation : PnL réalisé =
 vérification cible : compte démo). Ordre dans la barre : liq (high) **avant**
 TP (low) (E6, conservateur). Funding : pour un SHORT, `rate > 0` ⇒ shorts
 reçoivent (E7). Slippage paramétrique en bps (E8) : entrée short =
-`close·(1−slip)`, sortie = cible·`(1+slip)`, liquidation non affectée.
+`close·(1−slip)`, sortie TP = `cible·(1+slip)`, liquidation non affectée —
+l'application du slippage à la **sortie TP** a été corrigée en REV1 (le moteur
+fermait au prix cible sans slippage, ce qui surestimait le PnL net dès que
+`slip_bps > 0`) ; verrouillée par `test_slippage_sortie_tp`.
 
 **Test** : invariance des PnL cumulés USD entre comptabilisation barre à barre
 et fermeture en une étape ; PnL d'une position fermée = PnL brut − frais

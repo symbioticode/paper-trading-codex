@@ -56,7 +56,17 @@ ASSUME dans `exchange_spec.py`), pas une valeur vérifiée.
 
 - Frais maker/taker VIP 0 sans rabais BNB : **ASSUME** (page « Futures fees »).
 - Slippage constant, indépendant de la taille, paramétrable (défaut 0) :
-  **ASSUME** (vérification : marché).
+  **ASSUME** (vérification : marché). Appliqué à l'entrée (ordre marché) **et**
+  à la sortie TP (E8) ; la liquidation n'est pas affectée. Note REV1 : le
+  slippage de sortie TP a été corrigé et verrouillé par test ; les résultats
+  mesurés utilisent `slip_bps = 0`, donc non affectés.
+- **ADL (Auto-Deleveraging).** En cas d'insolvabilité d'un contrepartiste,
+  Binance peut appliquer un délevérage automatique qui liquide des positions
+  en miroir à un prix différant de la liquidation "théorique". Ce mécanisme
+  est **hors modèle** : H1/H5 supposent une liquidation complète à
+  `liq_price`, sans liquidation partielle ni ADL. Revu en REV1 : β=N, non
+  vérifié, non représenté — toute liquidation partielle en cascade réelle
+  reste hors de la portée de cette thèse.
 - Funding aligné sur les barres 1h, marque = close de la barre : **ASSUME**
   (vérification : prix index). Taux 8h supposé appliqué à la barre
   correspondante ; trous signalés, jamais comblés silencieusement.
@@ -96,6 +106,12 @@ sûreté du levier. En particulier, il ne corrige pas du biais de sélection de
 paramètres (le couple L/s a été choisi par le porteur du projet, pas par une
 procédure publiée).
 
+**Pas de benchmark Buy&Hold (REV1, β=N).** Ce livrable ne contient **aucun**
+benchmark Buy&Hold ni plafond de référence : le PnL constaté n'est comparé à
+aucune stratégie alternative. C'est une absence déclarée, pas un oubli masqué —
+le PnL constaté ne doit donc être lu que comme une mesure absolue sur la
+fenêtre testée.
+
 ---
 
 ## 3. Ce qui n'est PAS affirmé (et ne le sera jamais)
@@ -114,9 +130,11 @@ procédure publiée).
 |---|---|---|
 | `/fapi/v1/leverageBracket` (MMR réel SOLUSDT) | ASSUME | Corriger `TIER_1_MMR`, régénérer, re-publier |
 | Page Binance « Futures fees » (frais) | ASSUME | Corriger `MAKER_FEE`/`TAKER_FEE` |
+| Mécanisme ADL (délevérage automatique) | hors modèle | Documenter l'écart réel liq théorique vs liq ADL |
 | Prix index pour le funding (vs close) | ASSUME | Remplacer marque par index dans E7 |
 | Données 1 min sur la même fenêtre | absent | Mesurer l'erreur de modèle intra-barre |
 | Autres actifs / intervalles / couples (L,s) | absent | Généraliser H4 |
+| Benchmark Buy&Hold / plafond | absent | Ajouter une référence avant de commenter la rentabilité |
 | Compte démo réel (liq, frais, funding) | absent | Confronter engine à l'exécution réelle |
 
 Le code refuse de charger des données sans provenance (`load_with_provenance`),

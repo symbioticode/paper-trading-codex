@@ -81,6 +81,14 @@ construction, à la manière d'un retour d'expérience de backtest.
    barre (OHLC horaire), pas en temps continu : la formule continue H2
    sous-estime le risque de liquidation mesuré. Correction (V3) : la prédiction
    H4 est le Monte Carlo **discret** aux sémantiques du moteur. Voir METHODS.md §4.
+4. **Slippage de sortie TP (REV1, revue externe).** E8 documentait
+   « sortie = prix cible·(1 + slip) » mais le moteur fermait le TP exactement au
+   prix cible, sans appliquer `slip_bps` : le PnL net réalisé de chaque TP était
+   systématiquement surestimé dès que `slip_bps > 0`. Découvert par revue
+   externe (docs/rev/REV01.md), corrigé dans `engine.py` et verrouillé par
+   `tests/test_engine.py::test_slippage_sortie_tp`. Aucun impact sur les
+   résultats mesurés (runs à `slip_bps = 0`), mais la convention est désormais
+   conforme au code et testée.
 
 ### 2.3 Normes quantitatives appliquées
 
@@ -148,7 +156,7 @@ attendue.
 | Implémentation | `SimulationEngine` (E1–E9), `_close`, `_liquidate` |
 |---|---|
 | Test | `tests/test_engine.py`, `tests/test_metrics.py`, `tests/test_runner.py` |
-| Attente | PnL cumulé USD identique (à 1e-9) entre comptabilisation barre à barre et fermeture en une étape ; frais d'entrée débités une seule fois ; funding net appliqué au SHORT (rate>0 ⇒ shorts reçoivent). |
+| Attente | PnL cumulé USD identique (à 1e-9) entre comptabilisation barre à barre et fermeture en une étape ; frais d'entrée débités une seule fois ; funding net appliqué au SHORT (rate>0 ⇒ shorts reçoivent) ; slippage (E8) appliqué à l'entrée **et** à la sortie TP, liquidation non affectée. |
 | Critère d'échec | désaccord de PnL → bug. |
 
 ---
