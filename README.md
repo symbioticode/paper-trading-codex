@@ -34,7 +34,8 @@ sur le régime de volatilité médiane, pas sur le global ni les autres régimes
 ## Refuter le projet
 
 ```bash
-source activate.sh                     # env NixOS (LD_LIBRARY_PATH)
+nix-shell                         # env NixOS auto (crée/synchronise .venv) — recommandé
+source activate.sh                # alternative : venv + LD_LIBRARY_PATH manuel
 python scripts/03_ground_truth.py      # H2 : formule exacte sous GBM
 python scripts/04_validate_thesis.py   # H4 : contrôle GBM (doit PASSER)
 python scripts/04_validate_thesis.py --data real   # H4 : données réelles (FAIL connu, bucket vol 1)
