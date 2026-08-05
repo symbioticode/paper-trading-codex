@@ -102,10 +102,20 @@ def cluster_robust_test(
     if len(k_w) != len(n_w) or len(n_w) != len(pred_w):
         raise ValueError("k_w, n_w, pred_w doivent avoir la même longueur.")
     for k, n in zip(k_w, n_w):
-        if k < 0 or n <= 0 or k > n:
+        if k < 0 or n < 0 or k > n:
             raise ValueError(f"Comptes invalides : k={k}, n={n}")
-    W = len(n_w)
-    N = int(sum(n_w))
+    # Les fenêtres SANS position (n=0) ne contribuent à rien : on les écarte
+    # du test (elles ne peuvent ni apporter de variance, ni de masse).
+    active = [i for i, n in enumerate(n_w) if n > 0]
+    if not active:
+        W = len(n_w)
+        N = 0
+    else:
+        W = len(active)
+        N = int(sum(n_w[i] for i in active))
+        k_w = [k_w[i] for i in active]
+        n_w = [n_w[i] for i in active]
+        pred_w = [pred_w[i] for i in active]
     if N == 0 or W < 2:
         return float("nan"), float("nan"), float("nan"), float("nan"), False
 
