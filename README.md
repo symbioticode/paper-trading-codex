@@ -24,12 +24,27 @@ cohérent (H5).
 | Contrôle GBM (modèle vrai par construction) | **PASS** — global `p̂=0.1245` vs `P̂=0.1206` (±0.014) |
 | Données réelles SOLUSDT perp 1h (51 594 barres) | **FAIL** (réfuté) — global `p̂=0.110` vs `P̂=0.124` OK, mais bucket vol 1 `p̂=0.0845` vs `P̂=0.1245` (±0.020) HORS |
 | Tests unitaires | **103 verts** — voir [`docs/STATUS.md`](docs/STATUS.md) (source unique, régénérée par `python -m pytest tests/ -q`) |
-| PnL constaté (réel, hors thèse — mesure) | **−2 336 USD** / 3 256 trades, capital 10 000 (equity finale 7 663 USD) |
+| PnL constaté (réel, hors thèse — mesure) | **−2 336 USD** / 3 256 trades, capital 10 000 (equity finale 7 663 USD) — voir [`docs/ECONOMICS.md`](docs/ECONOMICS.md) |
 
 Un échec de validation est un **résultat publié** (l'hypothèse en défaut,
 l'écart, la significativité), pas un bug. Le FAIL réel est publié dans
 `docs/HYPOTHESIS.md` §H4 et `docs/THESIS.md` §3/§5 : la thèse H4 est réfutée
 sur le régime de volatilité médiane, pas sur le global ni les autres régimes.
+
+## Deux verdicts séparés (REV03 §4)
+
+- **Risque (H1–H6)** — la probabilité de liquidation est-elle dérivable et
+  prévisible ? → `docs/HYPOTHESIS.md`. Verdict actuel : H4 **réfutée** sur le
+  régime de volatilité médiane (résultat publié). H6 (liquidation
+  conditionnelle au trigger) est **pré-enregistrée** sur la branche
+  `feature/h6-conditional-liq`, sans aucun calcul encore.
+- **Économie (ECONOMICS.md)** — le portefeuille a gagné ou perdu de l'argent,
+  et par rapport à quoi ? → `docs/ECONOMICS.md`. Verdict mesuré : **−2 336 USD**
+  (constat), benchmarks passifs sur la même fenêtre (B&H, cash, sans levier) et
+  sensibilité exploratoire L/s/frais/slippage.
+
+Ces deux verdicts ne se mélangent jamais : même si la mesure économique
+changeait, H1–H6 et le FAIL H4 resteraient intacts.
 
 ## Refuter le projet
 
@@ -39,12 +54,14 @@ source activate.sh                # alternative : venv + LD_LIBRARY_PATH manuel
 python scripts/03_ground_truth.py      # H2 : formule exacte sous GBM
 python scripts/04_validate_thesis.py   # H4 : contrôle GBM (doit PASSER)
 python scripts/04_validate_thesis.py --data real   # H4 : données réelles (FAIL connu, bucket vol 1)
+python scripts/09_economic_benchmarks.py           # constat économique + benchmarks (REV03 §4)
 python -m pytest tests/ -q             # 103 tests — cf. docs/STATUS.md (source unique)
 ```
 
 ## Références
 
 - [`docs/HYPOTHESIS.md`](docs/HYPOTHESIS.md) — énoncés H1–H5, critères d'échec, corrections J6
+- [`docs/ECONOMICS.md`](docs/ECONOMICS.md) — constat économique, benchmarks passifs, sensibilité (REV03 §4)
 - [`docs/THESIS.md`](docs/THESIS.md) — fondements (références académiques, retour d'expérience, normes quantitatives), traduction en code, robustesse
 - [`docs/METHODS.md`](docs/METHODS.md) — dérivations complètes et méthodes statistiques
 - [`docs/LIMITATIONS.md`](docs/LIMITATIONS.md) — limites déclarées et cibles de vérification

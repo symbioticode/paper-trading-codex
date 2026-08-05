@@ -12,6 +12,7 @@
 | [`THESIS.md`](THESIS.md) | **Exhaustif.** Ce que la thèse affirme exactement, sur quoi elle se base (références académiques, retour d'expérience, normes quantitatives), comment elle est traduite en code avec les attentes de chaque module, et pourquoi l'approche est robuste. |
 | [`METHODS.md`](METHODS.md) | **Méthodes.** Dérivations complètes (formule de liquidation H1, formule à deux barrières H2, plafond H3), les deux corrections de mesure de H4 (prédiction discrète, Wald cluster-robuste) et la calibration des tests. |
 | [`LIMITATIONS.md`](LIMITATIONS.md) | **Limites déclarées.** Assomptions, inconnues, cibles de vérification et ce que la thèse ne prétend PAS. |
+| [`ECONOMICS.md`](ECONOMICS.md) | **Constats économiques (REV03 §4).** Espérance par trade décomposée, taux de liq d'équilibre, benchmarks passifs (B&H, cash, sans levier), sensibilité exploratoire — séparé de la thèse de risque. |
 | [`STATUS.md`](STATUS.md) | **Chiffres canoniques** (REV03 §1) : nombre de tests et résultats audités — source unique, les autres docs y renvoient. |
 | [`codex/`](codex/README.md) | **Pédagogique (Jour 7).** Sept leçons autonomes (01..07), une par journée du projet : la méthode falsifiable, les dérivations, et les pièges réellement rencontrés. Le PnL n'y figure que comme constat. |
 | `producteur-papercodex.md` | Symlink vers le skill Producteur (règles de production : rattachement à une hypothèse, conventions documentées, aucune valeur muette). |
@@ -31,6 +32,7 @@ source activate.sh        # env NixOS (LD_LIBRARY_PATH)
 python scripts/03_ground_truth.py      # H2 : formule exacte sous GBM
 python scripts/04_validate_thesis.py   # H4 : contrôle GBM (doit PASSER)
 python scripts/04_validate_thesis.py --data real   # H4 : données réelles
+python scripts/09_economic_benchmarks.py           # constat économique (REV03 §4)
 pytest tests/ -q          # 103 tests — cf. STATUS.md (source unique de comptage)
 ```
 

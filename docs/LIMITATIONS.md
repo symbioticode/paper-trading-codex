@@ -129,11 +129,12 @@ n=6649, p̂=0.1245 vs P̂=0.1206, tous buckets OK). Le contrôle GBM de
 isoler H4 (géométrie L/s) de la solvabilité (voir docstring du script) ;
 les données réelles gardent le capital du constat (10 000, aucun skip).
 
-**Pas de benchmark Buy&Hold (REV1, β=N).** Ce livrable ne contient **aucun**
-benchmark Buy&Hold ni plafond de référence : le PnL constaté n'est comparé à
-aucune stratégie alternative. C'est une absence déclarée, pas un oubli masqué —
-le PnL constaté ne doit donc être lu que comme une mesure absolue sur la
-fenêtre testée.
+**Benchmarks passifs (REV03 §4).** Depuis REV03, le constat est comparé à des
+benchmarks sur la même fenêtre (Buy & Hold, cash pur, grille SHORT sans
+levier) dans `docs/ECONOMICS.md` (`scripts/09_economic_benchmarks.py`). Le
+PnL constaté ne doit toujours pas être lu comme une promesse : la comparaison
+documente ce qui s'est passé, elle ne prédit rien. Avant REV03 (REV1, β=N), ce
+livrable ne contenait aucun benchmark — absence désormais comblée.
 
 ---
 
@@ -157,7 +158,7 @@ fenêtre testée.
 | Prix index pour le funding (vs close) | ASSUME | Remplacer marque par index dans E7 |
 | Données 1 min sur la même fenêtre | absent | Mesurer l'erreur de modèle intra-barre |
 | Autres actifs / intervalles / couples (L,s) | absent | Généraliser H4 |
-| Benchmark Buy&Hold / plafond | absent | Ajouter une référence avant de commenter la rentabilité |
+| Benchmark Buy&Hold / plafond | **fait** (REV03 §4) | Re-mesurer sur chaque fenêtre publiée (`docs/ECONOMICS.md`) |
 | Compte démo réel (liq, frais, funding) | absent | Confronter engine à l'exécution réelle |
 
 Le code refuse de charger des données sans provenance (`load_with_provenance`),
