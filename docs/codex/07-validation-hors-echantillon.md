@@ -41,8 +41,12 @@ donc la validation complète DOIT y passer (seed 60 : PASS, `p̂=0.1245` vs
 `P̂=0.1206` ±0.014). Si elle échouait sur le contrôle, ce serait la machinerie
 (estimation, simulateur, test) qui serait en cause, pas le marché. Ce n'est
 qu'ensuite qu'on applique le test aux **données réelles** (SOLUSDT perp 1h,
-51 594 barres) : résultat PASS, global `p̂=0.110` vs `P̂=0.124` ±0.023, buckets
-vol `0.112/0.084/0.124` vs prédits `0.112/0.125/0.128`.
+51 594 barres) : résultat **FAIL publié** — global `p̂=0.1100` vs `P̂=0.1236`
+±0.0149 OK, mais bucket de volatilité médiane `p̂=0.0845` vs `P̂=0.1245`
+±0.0196 **HORS** (écart 0.040) ; buckets 0 et 2 OK. **H4 est réfutée sur le
+régime de volatilité médiane** : les positions de ce régime se liquident moins
+que prédit. C'est exactement la sortie qu'un test falsifiable doit produire —
+pas un bug, un résultat qui borne le domaine de validité du modèle.
 
 ## Que prouve un PASS, exactement ?
 
@@ -60,6 +64,11 @@ Que la relation prédiction↔observation ne survit pas à ce régime — un
 **résultat publié** avec l'hypothèse en défaut, l'écart et la significativité.
 Rappel du leçon 06 : ~1 run sur 5 échoue par design (test calibré à 95 % par
 test) ; on lit donc la distribution sur plusieurs runs, pas un isolé.
+
+**Exemple réel, en l'état du projet** : le FAIL sur données réelles (bucket de
+volatilité médiane) est un tel résultat — documenté dans HYPOTHESIS.md, le
+global et les régimes 0/2 passant, ce qui localise le défaut du modèle plutôt
+que de l'effacer.
 
 ## Ce que le projet ne prétend pas (et le garde-fou)
 

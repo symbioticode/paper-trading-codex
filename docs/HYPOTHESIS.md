@@ -162,16 +162,24 @@ paramètres (pour `μ ≤ 0` puis `μ > 0` séparément) ; résolution numériqu
 - sortie `PASS` / `FAIL` chiffrée ; PASS exige global ET tous les buckets
   non vides acceptés ET aucun skip cash/cap (R5).
 
-**Résultats (régénérés par le script) :**
+**Résultats (régénérés par le script, venv sol-grid-lab) :**
 - Contrôle GBM (modèle vrai par construction), seed 60 : **PASS** — global
   `p̂=0.1245` vs `P̂=0.1206` (±0.014) ;
-- Données réelles Binance SOLUSDT perp 1h (51 594 barres) : **PASS** —
-  global `p̂=0.110` vs `P̂=0.124` (±0.023) ; buckets vol `0.112/0.084/0.124`
-  vs prédits `0.112/0.125/0.128`.
+- Données réelles Binance SOLUSDT perp 1h (51 594 barres) : **FAIL — H4
+  réfutée sur le régime de volatilité médiane**. Global `p̂=0.1100` vs
+  `P̂=0.1236` (±0.0149) OK ; buckets vol `0.1115/0.0845/0.1242` vs prédits
+  `0.1123/0.1245/0.1277` : bucket vol 1 **HORS** (`|p̂−P̂| = 0.040` > marge
+  cluster-robuste `0.0196`), buckets 0 et 2 OK. Résultat reproductible
+  (2 exécutions identiques, exit 1). Les positions du régime de volatilité
+  médiane se liquident **nettement moins** que prédit.
 
 **Critère d'échec.** fréquence observée hors de la marge cluster-robuste →
 la thèse est réfutée sur ce régime, et ceci est **publié comme résultat**, pas
-masqué.
+masqué. **Le FAIL réel l'active** : H4 est réfutée sur le bucket de volatilité
+médiane des données réelles ; elle survit sur le global et les régimes 0 et 2.
+C'est un résultat publié, qui pointe la piste d'investigation suivante (modèle
+de pont intra-barre, sélection du couple L/s, ou dépendance au régime de
+volatilité).
 
 ### H5 — Cohérence du numéraire
 

@@ -148,8 +148,8 @@ attendue.
 |---|---|
 | Test | `tests/test_windows.py`, `tests/test_thesis.py`, `scripts/04_validate_thesis.py` |
 | Attente (contrôle GBM, modèle vrai par construction) | **PASS** : global et tous les buckets non vides acceptés au Wald cluster-robuste 95 %, zéro skip cash/cap. Valeurs mesurées (seed 60) : global `p̂=0.1245` vs `P̂=0.1206` (±0.014). |
-| Attente (données réelles) | Le test falsifiable : **PASS** si la relation prédiction↔observation survit. Mesuré : global `p̂=0.110` vs `P̂=0.124` (±0.023) ; buckets vol `0.112/0.084/0.124` vs `0.112/0.125/0.128`. |
-| Critère d'échec | fréquence observée hors marge cluster-robuste → la thèse est **réfutée** sur ce régime, résultat publié. |
+| Attente (données réelles) | Le test falsifiable : **PASS** si la relation prédiction↔observation survit, **FAIL publié** sinon. Mesuré (venv sol-grid-lab, reproductible) : **FAIL** — global `p̂=0.1100` vs `P̂=0.1236` (±0.0149) OK, mais bucket vol 1 `p̂=0.0845` vs `P̂=0.1245` (±0.0196) **HORS** (écart 0.040) ; buckets 0 et 2 OK. H4 est **réfutée sur le régime de volatilité médiane**, pas sur le global ni les autres régimes. |
+| Critère d'échec | fréquence observée hors marge cluster-robuste → la thèse est **réfutée** sur ce régime, résultat publié. **Actif en l'état** (bucket vol 1 réel). |
 
 ### H5 — Cohérence du numéraire → `src/simulator/engine.py`
 
@@ -221,8 +221,15 @@ ALORS  un échec de H4 sur les données réelles est un RÉSULTAT :
        la relation prédiction↔observation ne survit pas à ce régime.
 ```
 
+**État du contrat (mesures venv sol-grid-lab, reproductibles) :** H1, H2, H3
+et le contrôle GBM passent ; **H4 est réfutée sur le régime de volatilité
+médiane des données réelles** (bucket vol 1, écart 0.040 > marge 0.0196), et
+survit sur le global et les régimes 0 et 2. Ce n'est pas un bug : c'est
+précisément la sortie que le contrat est conçu pour produire — la relation
+prédiction↔observation ne survit pas partout, et le projet le dit.
+
 Un PASS ne « prouve » pas la rentabilité ni la sûreté d'un levier : il prouve
 que, sur ces fenêtres et sous ces assomptions, **la fréquence de liquidation
-est prévisible à la précision annoncée**. C'est tout ce que la thèse prétend,
-et c'est suffisant pour prendre une décision de dimensionnement en
-connaissance de cause.
+est prévisible à la précision annoncée**. Un FAIL publie le régime qui échappe
+au modèle — ici, le régime de volatilité médiane, qui se liquide moins que
+prédit.

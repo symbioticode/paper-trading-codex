@@ -288,5 +288,5 @@ d'entrée − frais de sortie − funding payé. Désaccord à `1e-9` → bug.
 | Biais de granularité (contrôle, L=5, s=2%, σ=2.5%) | continue ≈ 0.108 vs observé ≈ 0.111 | mesuré via `04_validate_thesis.py` |
 | Calibration (20 seeds, contrôle) | global 0/20, buckets 4/60, PASS ≈ 80 % | `tests/test_thesis.py` |
 | H4 contrôle GBM (seed 60) | global `p̂=0.1245` vs `P̂=0.1206` (±0.014), **PASS** | `04_validate_thesis.py` |
-| H4 données réelles (51 594 barres) | global `p̂=0.110` vs `P̂=0.124` (±0.023), **PASS** | `04_validate_thesis.py --data real` |
+| H4 données réelles (51 594 barres) | **FAIL** : global `p̂=0.1100` vs `P̂=0.1236` (±0.0149) OK ; bucket vol 1 `p̂=0.0845` vs `P̂=0.1245` (±0.0196) **HORS** ; buckets 0/2 OK. Reproductible (venv sol-grid-lab, 2 runs identiques) | `04_validate_thesis.py --data real` |
 | PnL constaté (réel, hors thèse) | +176 933 USD / 3 256 trades (capital 10 000), 3 positions ouvertes | `04_validate_thesis.py --data real` |

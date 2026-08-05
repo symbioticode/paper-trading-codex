@@ -30,7 +30,7 @@ source activate.sh        # env NixOS (LD_LIBRARY_PATH)
 python scripts/03_ground_truth.py      # H2 : formule exacte sous GBM
 python scripts/04_validate_thesis.py   # H4 : contrôle GBM (doit PASSER)
 python scripts/04_validate_thesis.py --data real   # H4 : données réelles
-pytest tests/ -q          # 99 tests : toutes les hypothèses + conventions
+pytest tests/ -q          # 100 tests : toutes les hypothèses + conventions
 ```
 
 Tout test qui échoue nomme précisément l'hypothèse (H1…H5) en défaut, l'écart
