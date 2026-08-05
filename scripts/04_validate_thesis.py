@@ -8,11 +8,23 @@ RATTACHEMENT : H4 (le cœur falsifiable du projet), V1–V7 (thesis.py).
   (30 sous-pas/heure), où le modèle est VRAI par construction : H4 doit PASSER.
   Sur les données réelles, H4 est le test falsifiable de la thèse SHORT.
 
-  Usage :
-    python scripts/04_validate_thesis.py [--data real|gbm] [--seed S]
-                                          [--n-train T] [--n-test T]
-                                          [--L L] [--s s]
-                                          [--steps N] [--mc-paths N]
+    Usage :
+      python scripts/04_validate_thesis.py [--data real|gbm] [--seed S]
+                                            [--n-train T] [--n-test T]
+                                            [--L L] [--s s]
+                                            [--steps N] [--mc-paths N]
+                                            [--capital USD]
+
+    CAPITAL (REV2) : le contrôle GBM utilise par défaut 1 000 000 USD, les
+    données réelles 10 000 USD. Motif : H4 mesure la fréquence de liquidation
+    (géométrie L/s), PAS la solvabilité du portefeuille. Sur GBM à dérive
+    positive, une grille SHORT perd (à juste titre) de l'argent : à capital
+    10 000 elle se vide, R5 (skip cash) tronque l'échantillon et le contrôle
+    échoue pour une raison de portefeuille, pas de machinerie. À capital
+    abondant (R5 ne se déclenche jamais) le contrôle reproduit exactement le
+    PASS publié (seed 60 : n=6649, p̂=0.1245 vs P̂=0.1206). Le jeu réel garde
+    le capital réel du constat PnL (10 000) — il n'y a aucun skip dessus
+    (skips=0), donc pas de contamination.
 
   Sorties :
     - Résumé par bucket de volatilité (Wald cluster-robuste 95%) + global, PASS/FAIL ;
@@ -76,7 +88,14 @@ def main() -> int:
     ap.add_argument("--steps", type=int, default=30)
     ap.add_argument("--mc-paths", type=int, default=20_000)
     ap.add_argument("--n-hours", type=int, default=30_000)
+    ap.add_argument("--capital", type=float, default=None)
     args = ap.parse_args()
+
+    # Capital par défaut : contrôle GBM abondant (isoler la machinerie H4 de la
+    # solvabilité), réel 10 000 (constat du portefeuille). Voir docstring.
+    capital = args.capital if args.capital is not None else (
+        1_000_000.0 if args.data == "gbm" else 10_000.0
+    )
 
     if args.data == "gbm":
         df = generate_gbm_hourly_ohlc(
@@ -84,7 +103,8 @@ def main() -> int:
             steps_per_hour=args.steps, seed=args.seed,
         )
         print(f"Contrôle GBM (synthetic, seed={args.seed}) : "
-              f"{len(df)} barres 1h, steps/heure={args.steps}")
+              f"{len(df)} barres 1h, steps/heure={args.steps}, "
+              f"capital={capital:,.0f} USD")
     else:
         df, meta = load_with_provenance(str(REAL_PATH))
         print(f"Données réelles : {meta['source']} — "
@@ -102,7 +122,7 @@ def main() -> int:
     grid_cfg = GridConfig(
         grid_size=1, grid_ratio=args.s, qty_sol=10.0, leverage=args.L,
     )
-    run_cfg = RunConfig(initial_capital=10_000.0)
+    run_cfg = RunConfig(initial_capital=capital)
 
     predictor = partial(
         predict_discrete, steps_per_hour=args.steps, n_paths=args.mc_paths, seed=0,
@@ -114,7 +134,9 @@ def main() -> int:
 
     print("\n=== H4 : P(liq) prédite vs observée (Wald cluster-robuste 95%) ===")
     print(report.summary())
-    print(f"  censurées : {report.n_censored}   skips (cash/cap) : {report.n_skipped}")
+    print(f"  ouvertes en fin de jeu (censurées, V7) : {report.n_open_at_end}   "
+          f"résolues hors fenêtre : {report.n_hors_fenetres}   "
+          f"skips (cash/cap) : {report.n_skipped}")
 
     print("\n=== Constat PnL (hors thèse, mesure uniquement) ===")
     res = run_backtest(bars, ShortGridStrategy(grid_cfg), cfg=run_cfg)

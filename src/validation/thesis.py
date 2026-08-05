@@ -30,8 +30,14 @@ RATTACHEMENT : H4 (prédiction de la fréquence de liquidation), H2 (formule),
         4/60, PASS global ≈ 80% = 0.95⁴ (4 tests indépendants à 95%).
     V6  PASS si le GLOBAL est accepté ET chaque bucket non vide l'est (V5) ET
         aucun skip cash/cap. Buckets non testables (n=0 ou W<2) : signalés.
-    V7  Positions jamais résolues en fin de jeu : censurées, comptées
-        (n_censored) et signalées — jamais ajoutées au dénominateur.
+    V7  Positions jamais résolues en fin de jeu (encore dans `engine.positions`
+        au dernier close) : CENSURÉES au sens W3, comptées (`n_open_at_end`) et
+        signalées — jamais ajoutées au dénominateur. À NE PAS confondre avec les
+        positions RÉSOLUES dont la fenêtre d'ouverture est hors des fenêtres de
+        test (train initial / queue) : celles-ci sont comptées à part
+        (`n_hors_fenetres`). Distinction ajoutée en REV2 : avant, un seul compteur
+        `n_censored` additionnait les deux, et la vraie censure (positions encore
+        ouvertes) n'était pas comptée du tout.
 
   RATTACHEMENT : ne PAS confondre cette validation (fréquence de liq) avec la
   rentabilité : le PnL est un constat mesuré séparé (benchmarks).
@@ -156,7 +162,8 @@ class ThesisReport:
     windows: List[WindowResult]
     buckets: List[BucketResult]
     global_bucket: BucketResult
-    n_censored: int
+    n_hors_fenetres: int   # trades résolus dont la fenêtre d'ouverture ∉ wid_set
+    n_open_at_end: int     # V7 : positions jamais résolues en fin de jeu (censurées)
     n_skipped: int
     passes: bool
 
@@ -221,7 +228,13 @@ def validate_thesis(
         est = estimate_moments(closes[w.train_start:w.train_end])
         est_by_win[w.id] = (est.mu, est.sigma)
 
-    n_censored = 0
+    # V7 (REV2) : deux compteurs distincts.
+    #   n_open_at_end  = positions ENCORE OUVERTES au dernier close (vraie
+    #                    censure W3) — jamais comptées dans un dénominateur.
+    #   n_hors_fenetres = trades RÉSOLUS dont la fenêtre d'ouverture n'appartient
+    #                    à aucune fenêtre de test (train initial / queue).
+    n_open_at_end = len(engine.positions)
+    n_hors_fenetres = 0
     n_by_win = {w.id: 0 for w in windows}
     k_by_win = {w.id: 0 for w in windows}
     for i, t in enumerate(engine.trades):
@@ -231,7 +244,7 @@ def validate_thesis(
             if t.reason == "liquidation":
                 k_by_win[w] += 1
         else:
-            n_censored += 1
+            n_hors_fenetres += 1
 
     window_results: List[WindowResult] = []
     for w in windows:
@@ -278,7 +291,8 @@ def validate_thesis(
     )
     return ThesisReport(
         windows=window_results, buckets=buckets, global_bucket=global_bucket,
-        n_censored=n_censored,
+        n_hors_fenetres=n_hors_fenetres,
+        n_open_at_end=n_open_at_end,
         n_skipped=res.n_skipped_cash + res.n_skipped_cap,
         passes=passes,
     )

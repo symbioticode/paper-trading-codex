@@ -126,7 +126,9 @@ def run_validate(df, label: str) -> int:
                              run_cfg=run_cfg, predictor=predictor)
     print(f"\n=== {label} ===")
     print(report.summary())
-    print(f"  censurées : {report.n_censored}   skips : {report.n_skipped}")
+    print(f"  ouvertes en fin de jeu (censurées, V7) : {report.n_open_at_end}   "
+          f"résolues hors fenêtre : {report.n_hors_fenetres}   "
+          f"skips : {report.n_skipped}")
     return 0 if report.passes else 1
 
 
